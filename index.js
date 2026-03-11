@@ -457,6 +457,23 @@ app.get("/analytics", async (_req, res, next) => {
   }
 });
 
+
+app.get("/dynamic-sitemap.xml", (req, res) => {
+  const file = path.join(__dirname, "public", "dynamic-sitemap.xml");
+
+  res.setHeader("Content-Type", "application/xml");
+
+  res.sendFile(file);
+});
+
+app.get("/dynamic-sitemap-index.xml", (req, res) => {
+  const file = path.join(__dirname, "public", "dynamic-sitemap-index.xml");
+
+  res.setHeader("Content-Type", "application/xml");
+
+  res.sendFile(file);
+});
+
 app.use((req, res, next) => {
   if (req.method !== "GET") return next();
 
