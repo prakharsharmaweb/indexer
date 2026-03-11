@@ -1,4 +1,3 @@
-
 const fs = require("fs/promises");
 const path = require("path");
 const axios = require("axios");
@@ -41,8 +40,23 @@ function getSitemapIndexPath() {
   return path.join(PUBLIC_DIR, SITEMAP_INDEX_FILE);
 }
 
-async function readUrlEntries(filePath) {
+/*
+Validate URLs before inserting into sitemap
+*/
+function isValidUrl(url) {
+  if (!url) return false;
+  if (!/^https?:\/\//i.test(url)) return false;
+  if (url.startsWith("site:")) return false;
 
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readUrlEntries(filePath) {
   let xml;
 
   try {
@@ -61,13 +75,19 @@ async function readUrlEntries(filePath) {
   let match = urlRegex.exec(xml);
 
   while (match) {
-
     const node = match[0];
     const locMatch = locRegex.exec(node);
 
     if (locMatch?.[1]) {
+      const url = unescapeXml(locMatch[1].trim());
+
+      if (!isValidUrl(url)) {
+        match = urlRegex.exec(xml);
+        continue;
+      }
+
       entries.push({
-        loc: unescapeXml(locMatch[1].trim()),
+        loc: url,
         lastmod:
           lastmodRegex.exec(node)?.[1]?.trim() ||
           new Date().toISOString(),
@@ -81,10 +101,8 @@ async function readUrlEntries(filePath) {
 }
 
 function buildUrlSetXml(entries) {
-
   const urlsXml = entries
     .map((entry) => {
-
       return [
         "  <url>",
         `    <loc>${escapeXml(entry.loc)}</loc>`,
@@ -93,7 +111,6 @@ function buildUrlSetXml(entries) {
         "    <priority>0.8</priority>",
         "  </url>",
       ].join("\n");
-
     })
     .join("\n");
 
@@ -107,20 +124,17 @@ function buildUrlSetXml(entries) {
 }
 
 function buildSitemapIndexXml(files) {
-
   const baseUrl = getBaseUrl();
   const now = new Date().toISOString();
 
   const entriesXml = files
     .map((fileName) => {
-
       return [
         "  <sitemap>",
         `    <loc>${escapeXml(`${baseUrl}/${fileName}`)}</loc>`,
         `    <lastmod>${escapeXml(now)}</lastmod>`,
         "  </sitemap>",
       ].join("\n");
-
     })
     .join("\n");
 
@@ -134,7 +148,6 @@ function buildSitemapIndexXml(files) {
 }
 
 async function getRotatedSitemapFiles() {
-
   let files = [];
 
   try {
@@ -146,16 +159,13 @@ async function getRotatedSitemapFiles() {
 
   return files
     .map((name) => {
-
       const match = /^dynamic-sitemap-(\d+)\.xml$/.exec(name);
-
       if (!match) return null;
 
       return {
         name,
         index: Number(match[1]),
       };
-
     })
     .filter(Boolean)
     .sort((a, b) => a.index - b.index)
@@ -163,7 +173,6 @@ async function getRotatedSitemapFiles() {
 }
 
 async function rotateActiveSitemap() {
-
   const activePath = getActiveSitemapPath();
 
   const rotatedFiles = await getRotatedSitemapFiles();
@@ -182,16 +191,12 @@ async function rotateActiveSitemap() {
 }
 
 async function writeActiveSitemap(entries) {
-
   const xml = buildUrlSetXml(entries);
-
   await fs.writeFile(getActiveSitemapPath(), xml, "utf8");
 }
 
 async function writeSitemapIndex() {
-
   const rotatedFiles = await getRotatedSitemapFiles();
-
   const files = [...rotatedFiles, ACTIVE_SITEMAP_FILE];
 
   const xml = buildSitemapIndexXml(files);
@@ -199,24 +204,27 @@ async function writeSitemapIndex() {
   await fs.writeFile(getSitemapIndexPath(), xml, "utf8");
 }
 
+/*
+Notify Google about sitemap update
+*/
 async function pingGoogleSitemap(sitemapUrl) {
-
   try {
     await axios.get(
       `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`
     );
-  } catch (_) {
-    // Ignore ping failures
-  }
+  } catch (_) {}
 }
 
 async function sitemapService(url) {
-
   if (typeof url !== "string" || !url.trim()) {
     throw new Error("sitemapService requires a non-empty URL string.");
   }
 
   const normalizedUrl = normalizeHttpUrl(url);
+
+  if (!isValidUrl(normalizedUrl)) {
+    throw new Error("Invalid URL for sitemap.");
+  }
 
   await fs.mkdir(PUBLIC_DIR, { recursive: true });
 
@@ -227,7 +235,6 @@ async function sitemapService(url) {
   /*
   Remove duplicates
   */
-
   entries = entries.filter((entry) => entry.loc !== normalizedUrl);
 
   entries.push({
@@ -236,34 +243,24 @@ async function sitemapService(url) {
   });
 
   /*
-  Keep sitemap within size limit
+  Limit sitemap size
   */
-
   if (entries.length >= MAX_URLS_PER_SITEMAP) {
-
     await rotateActiveSitemap();
-
     entries = entries.slice(-MAX_URLS_PER_SITEMAP);
-
   }
 
   /*
-  Sort URLs for stable crawl order
+  Stable crawl order
   */
-
   entries = entries.sort((a, b) => a.loc.localeCompare(b.loc));
 
   await writeActiveSitemap(entries);
-
   await writeSitemapIndex();
 
   const baseUrl = getBaseUrl();
 
   const sitemapUrl = `${baseUrl}/${ACTIVE_SITEMAP_FILE}`;
-
-  /*
-  Notify Google
-  */
 
   await pingGoogleSitemap(sitemapUrl);
 
@@ -275,4 +272,3 @@ async function sitemapService(url) {
 }
 
 module.exports = sitemapService;
-
