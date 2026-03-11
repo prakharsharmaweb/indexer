@@ -1,0 +1,22 @@
+{
+  "name": "indexing-tool-2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "worker": "node indexingWorker.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.13.6",
+    "bullmq": "^5.70.4",
+    "cheerio": "^1.2.0",
+    "express": "^5.2.1",
+    "redis": "^5.11.0"
+  }
+}

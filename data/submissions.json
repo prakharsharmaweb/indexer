@@ -1,0 +1,970 @@
+{
+  "submissions": [
+    {
+      "id": "69665606-8932-48a8-9586-197c0fae0e6a",
+      "jobId": "69665606-8932-48a8-9586-197c0fae0e6a",
+      "url": "https://example.com/",
+      "priority": 1,
+      "requestedBy": "admin",
+      "status": "rejected",
+      "submittedAt": "2026-03-10T19:39:54.974Z",
+      "processedAt": "2026-03-10T19:40:02.985Z",
+      "reason": "Queue submit failed: Queue submit timeout",
+      "httpStatus": 503,
+      "latencyMs": 8006,
+      "error": "Queue submit timeout"
+    },
+    {
+      "id": "333464c1-b69e-4675-8dc0-2ffddc9645fc",
+      "jobId": "333464c1-b69e-4675-8dc0-2ffddc9645fc",
+      "url": "https://sites.google.com/view/hfuyfuyf/home",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "rejected",
+      "submittedAt": "2026-03-10T20:11:48.295Z",
+      "processedAt": "2026-03-10T20:12:14.587Z",
+      "reason": "Indexing services failed: Ping failures: Bing ping failed after 4 attempts: HTTP 410; Feedburner failed after 4 attempts: HTTP 400",
+      "httpStatus": 500,
+      "latencyMs": null,
+      "error": "Indexing services failed: Ping failures: Bing ping failed after 4 attempts: HTTP 410; Feedburner failed after 4 attempts: HTTP 400"
+    },
+    {
+      "id": "a37ef1c6-7d5f-4187-9240-6cac313fa72d",
+      "jobId": "a37ef1c6-7d5f-4187-9240-6cac313fa72d",
+      "url": "https://sites.google.com/view/hfuyfuyf/home",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-10T20:13:53.949Z",
+      "processedAt": "2026-03-10T20:13:54.865Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": [
+        {
+          "service": "rssService",
+          "result": "http://localhost:3000/rss.xml"
+        },
+        {
+          "service": "sitemapService",
+          "result": {
+            "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+            "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml"
+          }
+        },
+        {
+          "service": "pingService",
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "successful": [
+              {
+                "service": "Pingomatic",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Bing ping",
+                "ok": true,
+                "ignored": true,
+                "status": 410,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 410"
+              },
+              {
+                "service": "Twingly",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Feedburner",
+                "ok": true,
+                "ignored": true,
+                "status": 400,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 400"
+              }
+            ],
+            "failed": []
+          }
+        },
+        {
+          "service": "crawlerService",
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "successful": [
+              {
+                "bot": "Googlebot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "Bingbot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "DuckDuckBot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "YandexBot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              }
+            ]
+          }
+        },
+        {
+          "service": "backlinkService",
+          "result": {
+            "totalUrls": 5,
+            "totalPages": 1,
+            "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+            "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+          }
+        }
+      ]
+    },
+    {
+      "id": "4f2b7dd9-8854-4ce4-a81d-35c77a21c5b8",
+      "jobId": "4f2b7dd9-8854-4ce4-a81d-35c77a21c5b8",
+      "url": "site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "rejected",
+      "submittedAt": "2026-03-10T20:17:54.592Z",
+      "processedAt": "2026-03-10T20:17:59.127Z",
+      "reason": "Indexing services failed: Crawler simulation failed: Googlebot: Unsupported protocol site:; Bingbot: Unsupported protocol site:; DuckDuckBot: Unsupported protocol site:; YandexBot: Unsupported protocol site:",
+      "httpStatus": 500,
+      "latencyMs": null,
+      "error": "Indexing services failed: Crawler simulation failed: Googlebot: Unsupported protocol site:; Bingbot: Unsupported protocol site:; DuckDuckBot: Unsupported protocol site:; YandexBot: Unsupported protocol site:"
+    },
+    {
+      "id": "4a72f1ba-b466-4f05-847b-55ee2807fd68",
+      "jobId": "4a72f1ba-b466-4f05-847b-55ee2807fd68",
+      "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-10T20:20:53.793Z",
+      "processedAt": "2026-03-10T20:20:55.634Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": [
+        {
+          "service": "rssService",
+          "result": "http://localhost:3000/rss.xml"
+        },
+        {
+          "service": "sitemapService",
+          "result": {
+            "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+            "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml"
+          }
+        },
+        {
+          "service": "pingService",
+          "result": {
+            "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+            "successful": [
+              {
+                "service": "Pingomatic",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Bing ping",
+                "ok": true,
+                "ignored": true,
+                "status": 410,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 410"
+              },
+              {
+                "service": "Twingly",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Feedburner",
+                "ok": true,
+                "ignored": true,
+                "status": 400,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 400"
+              }
+            ],
+            "failed": []
+          }
+        },
+        {
+          "service": "crawlerService",
+          "result": {
+            "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+            "successful": [
+              {
+                "bot": "Googlebot",
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "Bingbot",
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "DuckDuckBot",
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "YandexBot",
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              }
+            ]
+          }
+        },
+        {
+          "service": "backlinkService",
+          "result": {
+            "totalUrls": 9,
+            "totalPages": 1,
+            "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+            "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+          }
+        }
+      ]
+    },
+    {
+      "id": "360b6b56-ecec-4e26-bcf9-fcee4a6990bc",
+      "jobId": "360b6b56-ecec-4e26-bcf9-fcee4a6990bc",
+      "url": "https://sites.google.com/view/hfuyfuyf/home",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-10T20:25:10.017Z",
+      "processedAt": "2026-03-10T20:25:10.787Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": [
+        {
+          "service": "rssService",
+          "result": "http://localhost:3000/rss.xml"
+        },
+        {
+          "service": "sitemapService",
+          "result": {
+            "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+            "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml"
+          }
+        },
+        {
+          "service": "pingService",
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "successful": [
+              {
+                "service": "Pingomatic",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Bing ping",
+                "ok": true,
+                "ignored": true,
+                "status": 410,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 410"
+              },
+              {
+                "service": "Twingly",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Feedburner",
+                "ok": true,
+                "ignored": true,
+                "status": 400,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 400"
+              }
+            ],
+            "failed": []
+          }
+        },
+        {
+          "service": "crawlerService",
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "successful": [
+              {
+                "bot": "Googlebot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "Bingbot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "DuckDuckBot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "YandexBot",
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              }
+            ]
+          }
+        },
+        {
+          "service": "backlinkService",
+          "result": {
+            "totalUrls": 10,
+            "totalPages": 1,
+            "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+            "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+          }
+        }
+      ]
+    },
+    {
+      "id": "a19b9452-0792-4c0e-961b-4f0c2fb0b272",
+      "jobId": "a19b9452-0792-4c0e-961b-4f0c2fb0b272",
+      "url": "https://sites.google.com/view/hfuyfuyf/home",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-11T07:35:22.448Z",
+      "processedAt": "2026-03-11T07:35:29.322Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": [
+        {
+          "service": "rssService",
+          "success": true,
+          "result": "http://localhost:3000/rss.xml"
+        },
+        {
+          "service": "sitemapService",
+          "success": true,
+          "result": {
+            "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+            "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml",
+            "totalUrls": 6
+          }
+        },
+        {
+          "service": "backlinkService",
+          "success": true,
+          "result": {
+            "totalUrls": 4,
+            "totalPages": 1,
+            "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+            "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+          }
+        },
+        {
+          "service": "discoveryService",
+          "success": true,
+          "result": {
+            "page": 1
+          }
+        },
+        {
+          "service": "crawlerService",
+          "success": true,
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "crawlers": [
+              {
+                "bot": "Googlebot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "Googlebot-Mobile",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "Bingbot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              },
+              {
+                "bot": "DuckDuckBot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+              }
+            ]
+          }
+        },
+        {
+          "service": "pingService",
+          "success": true,
+          "result": {
+            "url": "https://sites.google.com/view/hfuyfuyf/home",
+            "successful": [
+              {
+                "service": "Pingomatic",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Bing ping",
+                "ok": true,
+                "ignored": true,
+                "status": 410,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 410"
+              },
+              {
+                "service": "Twingly",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Feedburner",
+                "ok": true,
+                "ignored": true,
+                "status": 400,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 400"
+              }
+            ],
+            "failed": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "ebaed18e-e831-4e6a-b5da-6049083feedd",
+      "jobId": "ebaed18e-e831-4e6a-b5da-6049083feedd",
+      "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-11T07:41:51.956Z",
+      "processedAt": "2026-03-11T07:41:57.587Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": [
+        {
+          "service": "rssService",
+          "success": true,
+          "result": "http://localhost:3000/rss.xml"
+        },
+        {
+          "service": "sitemapService",
+          "success": true,
+          "result": {
+            "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+            "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml",
+            "totalUrls": 6
+          }
+        },
+        {
+          "service": "backlinkService",
+          "success": true,
+          "result": {
+            "totalUrls": 4,
+            "totalPages": 1,
+            "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+            "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+          }
+        },
+        {
+          "service": "discoveryService",
+          "success": true,
+          "result": {
+            "page": 1
+          }
+        },
+        {
+          "service": "crawlerService",
+          "success": true,
+          "result": {
+            "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+            "crawlers": [
+              {
+                "bot": "Googlebot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "Googlebot-Mobile",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "Bingbot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              },
+              {
+                "bot": "DuckDuckBot",
+                "success": true,
+                "status": 200,
+                "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+              }
+            ]
+          }
+        },
+        {
+          "service": "pingService",
+          "success": true,
+          "result": {
+            "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+            "successful": [
+              {
+                "service": "Pingomatic",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Bing ping",
+                "ok": true,
+                "ignored": true,
+                "status": 410,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 410"
+              },
+              {
+                "service": "Twingly",
+                "ok": true,
+                "status": 200,
+                "attempts": 1
+              },
+              {
+                "service": "Feedburner",
+                "ok": true,
+                "ignored": true,
+                "status": 400,
+                "attempts": 1,
+                "note": "Ignored non-fatal status HTTP 400"
+              }
+            ],
+            "failed": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "696f95ee-be88-4521-9bd6-9f1d604d3d87",
+      "jobId": "696f95ee-be88-4521-9bd6-9f1d604d3d87",
+      "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-11T09:56:02.811Z",
+      "processedAt": "2026-03-11T09:56:10.319Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": {
+        "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+        "results": [
+          {
+            "service": "rssService",
+            "success": true,
+            "result": {
+              "rssUrl": "http://localhost:3000/rss.xml",
+              "items": 11
+            }
+          },
+          {
+            "service": "sitemapService",
+            "success": true,
+            "result": {
+              "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+              "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml",
+              "totalUrls": 6
+            }
+          },
+          {
+            "service": "backlinkService",
+            "success": true,
+            "result": {
+              "totalUrls": 4,
+              "totalPages": 1,
+              "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+              "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+            }
+          },
+          {
+            "service": "discoveryService",
+            "success": true,
+            "result": {
+              "page": 1
+            }
+          },
+          {
+            "service": "crawlerService",
+            "success": true,
+            "result": {
+              "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+              "crawlers": [
+                {
+                  "bot": "Googlebot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 1001,
+                  "htmlBytes": 145352,
+                  "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+                },
+                {
+                  "bot": "Googlebot-Mobile",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 153,
+                  "htmlBytes": 145352,
+                  "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+                },
+                {
+                  "bot": "GoogleInspectionTool",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 156,
+                  "htmlBytes": 145352,
+                  "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+                },
+                {
+                  "bot": "Bingbot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 155,
+                  "htmlBytes": 145352,
+                  "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+                },
+                {
+                  "bot": "DuckDuckBot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 157,
+                  "htmlBytes": 145352,
+                  "finalUrl": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf"
+                }
+              ],
+              "crawlersAttempted": 5
+            }
+          },
+          {
+            "service": "pingService",
+            "success": true,
+            "result": {
+              "url": "https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf",
+              "successful": [
+                {
+                  "service": "Pingomatic",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Twingly",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Feedburner",
+                  "ok": true,
+                  "ignored": true,
+                  "status": 400,
+                  "attempts": 1
+                }
+              ],
+              "failed": [
+                "Google failed after 4 attempts: HTTP 404",
+                "Bing failed after 4 attempts: HTTP 410"
+              ]
+            }
+          }
+        ],
+        "duration": 7383
+      }
+    },
+    {
+      "id": "b7dbf15f-25d8-4125-9c0f-52933e3dd5cc",
+      "jobId": "b7dbf15f-25d8-4125-9c0f-52933e3dd5cc",
+      "url": "https://sites.google.com/view/hfuyfuyf/home",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-11T09:56:55.880Z",
+      "processedAt": "2026-03-11T09:57:04.452Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": {
+        "url": "https://sites.google.com/view/hfuyfuyf/home",
+        "results": [
+          {
+            "service": "rssService",
+            "success": true,
+            "result": {
+              "rssUrl": "http://localhost:3000/rss.xml",
+              "items": 6
+            }
+          },
+          {
+            "service": "sitemapService",
+            "success": true,
+            "result": {
+              "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+              "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml",
+              "totalUrls": 6
+            }
+          },
+          {
+            "service": "backlinkService",
+            "success": true,
+            "result": {
+              "totalUrls": 4,
+              "totalPages": 1,
+              "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+              "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+            }
+          },
+          {
+            "service": "discoveryService",
+            "success": true,
+            "result": {
+              "page": 1
+            }
+          },
+          {
+            "service": "crawlerService",
+            "success": true,
+            "result": {
+              "url": "https://sites.google.com/view/hfuyfuyf/home",
+              "crawlers": [
+                {
+                  "bot": "Googlebot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 724,
+                  "htmlBytes": 119791,
+                  "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+                },
+                {
+                  "bot": "Googlebot-Mobile",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 450,
+                  "htmlBytes": 119248,
+                  "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+                },
+                {
+                  "bot": "GoogleInspectionTool",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 444,
+                  "htmlBytes": 119800,
+                  "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+                },
+                {
+                  "bot": "Bingbot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 454,
+                  "htmlBytes": 119684,
+                  "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+                },
+                {
+                  "bot": "DuckDuckBot",
+                  "success": true,
+                  "status": 200,
+                  "latencyMs": 451,
+                  "htmlBytes": 119715,
+                  "finalUrl": "https://sites.google.com/view/hfuyfuyf/home"
+                }
+              ],
+              "crawlersAttempted": 5
+            }
+          },
+          {
+            "service": "pingService",
+            "success": true,
+            "result": {
+              "url": "https://sites.google.com/view/hfuyfuyf/home",
+              "successful": [
+                {
+                  "service": "Pingomatic",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Twingly",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Feedburner",
+                  "ok": true,
+                  "ignored": true,
+                  "status": 400,
+                  "attempts": 1
+                }
+              ],
+              "failed": [
+                "Google failed after 4 attempts: HTTP 404",
+                "Bing failed after 4 attempts: HTTP 410"
+              ]
+            }
+          }
+        ],
+        "duration": 8539
+      }
+    },
+    {
+      "id": "8231fd77-497d-4981-b272-9783b4c8c088",
+      "jobId": "8231fd77-497d-4981-b272-9783b4c8c088",
+      "url": "https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf",
+      "priority": 5,
+      "requestedBy": "admin",
+      "status": "success",
+      "submittedAt": "2026-03-11T10:43:32.918Z",
+      "processedAt": "2026-03-11T10:44:07.967Z",
+      "reason": "",
+      "httpStatus": 200,
+      "latencyMs": null,
+      "result": {
+        "url": "https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf",
+        "results": [
+          {
+            "service": "rssService",
+            "success": true,
+            "result": {
+              "rssUrl": "http://localhost:3000/rss.xml",
+              "items": 7
+            }
+          },
+          {
+            "service": "sitemapService",
+            "success": true,
+            "result": {
+              "sitemapUrl": "http://localhost:3000/dynamic-sitemap.xml",
+              "sitemapIndexUrl": "http://localhost:3000/dynamic-sitemap-index.xml",
+              "totalUrls": 7
+            }
+          },
+          {
+            "service": "backlinkService",
+            "success": true,
+            "result": {
+              "totalUrls": 5,
+              "totalPages": 1,
+              "latestPageUrl": "http://localhost:3000/backlinks/b3d69b5a-1a67-459c-ba50-d896f33c0b72.html",
+              "backlinksDirectoryUrl": "http://localhost:3000/backlinks"
+            }
+          },
+          {
+            "service": "discoveryService",
+            "success": true,
+            "result": {
+              "page": 1
+            }
+          },
+          {
+            "service": "crawlerService",
+            "success": true,
+            "result": {
+              "url": "https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf",
+              "crawlers": [
+                {
+                  "bot": "Googlebot",
+                  "success": false,
+                  "error": "HTTP 404"
+                },
+                {
+                  "bot": "Googlebot-Mobile",
+                  "success": false,
+                  "error": "HTTP 404"
+                },
+                {
+                  "bot": "GoogleInspectionTool",
+                  "success": false,
+                  "error": "HTTP 404"
+                },
+                {
+                  "bot": "Bingbot",
+                  "success": false,
+                  "error": "HTTP 404"
+                },
+                {
+                  "bot": "DuckDuckBot",
+                  "success": false,
+                  "error": "HTTP 404"
+                }
+              ],
+              "crawlersAttempted": 5
+            }
+          },
+          {
+            "service": "pingService",
+            "success": true,
+            "result": {
+              "url": "https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf",
+              "successful": [
+                {
+                  "service": "Pingomatic",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Twingly",
+                  "ok": true,
+                  "status": 200,
+                  "attempts": 1
+                },
+                {
+                  "service": "Feedburner",
+                  "ok": true,
+                  "ignored": true,
+                  "status": 400,
+                  "attempts": 1
+                }
+              ],
+              "failed": [
+                "Google failed after 4 attempts: HTTP 404",
+                "Bing failed after 4 attempts: HTTP 410"
+              ]
+            }
+          }
+        ],
+        "duration": 34999
+      }
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Indexing RSS Feed</title>
+    <link>http://localhost:3000/rss.xml</link>
+    <description>Latest submitted URLs for indexing</description>
+    <lastBuildDate>Wed, 11 Mar 2026 10:43:32 GMT</lastBuildDate>
+    <item>
+      <title>https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf</title>
+      <link>https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf</link>
+      <guid isPermaLink="false">https://www.tlajomulco.gob.mx/sites/default/files/webform/aguapotable/grsr-hhh-09726767.pdf#1773225812989</guid>
+      <pubDate>Wed, 11 Mar 2026 10:43:32 GMT</pubDate>
+    </item>
+    <item>
+      <title>https://sites.google.com/view/hfuyfuyf/home</title>
+      <link>https://sites.google.com/view/hfuyfuyf/home</link>
+      <guid isPermaLink="false">https://sites.google.com/view/hfuyfuyf/home#1773223015910</guid>
+      <pubDate>Wed, 11 Mar 2026 09:56:55 GMT</pubDate>
+    </item>
+    <item>
+      <title>https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</title>
+      <link>https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</link>
+      <guid isPermaLink="false">https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf#1773222962877</guid>
+      <pubDate>Wed, 11 Mar 2026 09:56:02 GMT</pubDate>
+    </item>
+    <item>
+      <title>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</title>
+      <link>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</link>
+      <guid isPermaLink="false">site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf#1773173878804</guid>
+      <pubDate>Tue, 10 Mar 2026 20:17:58 GMT</pubDate>
+    </item>
+    <item>
+      <title>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</title>
+      <link>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</link>
+      <guid isPermaLink="false">site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf#1773173876354</guid>
+      <pubDate>Tue, 10 Mar 2026 20:17:56 GMT</pubDate>
+    </item>
+    <item>
+      <title>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</title>
+      <link>site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf</link>
+      <guid isPermaLink="false">site:https://www.faurecia-us.com/sites/faurecia-us/files/webform/contact/_sid_/grsr-hhh-09726767.pdf#1773173874616</guid>
+      <pubDate>Tue, 10 Mar 2026 20:17:54 GMT</pubDate>
+    </item>
+    <item>
+      <title>https://example.com/</title>
+      <link>https://example.com/</link>
+      <guid isPermaLink="false">https://example.com/#1773169690965</guid>
+      <pubDate>Tue, 10 Mar 2026 19:08:10 GMT</pubDate>
+    </item>
+  </channel>
+</rss>
