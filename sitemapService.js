@@ -1,7 +1,9 @@
 const fs = require("fs/promises");
 const path = require("path");
-const axios = require("axios");
 const { normalizeHttpUrl } = require("./urlUtils");
+const {
+  submitSitemapToSearchConsole,
+} = require("./services/searchConsoleSitemapService");
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 
@@ -9,7 +11,13 @@ const ACTIVE_SITEMAP_FILE = "dynamic-sitemap.xml";
 const SITEMAP_INDEX_FILE = "dynamic-sitemap-index.xml";
 
 const MAX_URLS_PER_SITEMAP = 50000;
-const GENERATED_HTML_DIRS = ["discovery", "backlinks", "linkgraph", "wrappers"];
+const GENERATED_HTML_DIRS = [
+  "discovery",
+  "backlinks",
+  "linkgraph",
+  "wrappers",
+  "pdf-landing",
+];
 
 function escapeXml(value) {
   return String(value)
@@ -241,17 +249,6 @@ async function writeSitemapIndex() {
   await fs.writeFile(getSitemapIndexPath(), xml, "utf8");
 }
 
-/*
-Notify Google about sitemap update
-*/
-async function pingGoogleSitemap(sitemapUrl) {
-  try {
-    await axios.get(
-      `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`
-    );
-  } catch (_) {}
-}
-
 async function sitemapService(url) {
   if (typeof url !== "string" || !url.trim()) {
     throw new Error("sitemapService requires a non-empty URL string.");
@@ -304,13 +301,19 @@ async function sitemapService(url) {
   const baseUrl = getBaseUrl();
 
   const sitemapUrl = `${baseUrl}/${ACTIVE_SITEMAP_FILE}`;
-
-  await pingGoogleSitemap(sitemapUrl);
+  const searchConsole = await submitSitemapToSearchConsole(sitemapUrl).catch(
+    (error) => ({
+      submitted: false,
+      skipped: false,
+      reason: error.message,
+    })
+  );
 
   return {
     sitemapUrl,
     sitemapIndexUrl: `${baseUrl}/${SITEMAP_INDEX_FILE}`,
     totalUrls: entries.length,
+    searchConsole,
   };
 }
 

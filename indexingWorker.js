@@ -68,6 +68,7 @@ const discoveryService = loadService("discoveryService");
 const indexabilityService = loadService("indexabilityService");
 const googleIndexingService = loadService("googleIndexingService");
 const linkGraphService = loadService("linkGraphService");
+const pdfLandingService = loadService("pdfLandingService");
 const wrapperService = loadService("wrapperService");
 const crawlerService = loadService("crawlerService");
 const pingService = loadService("pingService");
@@ -80,6 +81,8 @@ const services = [
   { name: "indexabilityService", module: indexabilityService },
 
   { name: "googleIndexingService", module: googleIndexingService },
+
+  { name: "pdfLandingService", module: pdfLandingService },
 
   { name: "wrapperService", module: wrapperService },
 

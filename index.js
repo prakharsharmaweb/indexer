@@ -19,6 +19,7 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_SUBMIT_TIMEOUT_MS = Number(process.env.QUEUE_SUBMIT_TIMEOUT_MS || 8000);
 const PUBLIC_DIR = path.join(__dirname, "public");
+const PDF_LANDING_DIR = path.join(PUBLIC_DIR, "pdf-landing");
 
 const USERS = [
   { username: "admin", password: "Admin@12345", role: "admin" },
@@ -284,6 +285,36 @@ app.get("/dynamic-sitemap-index.xml", async (req, res) => {
   }
 });
 
+app.get("/pdf-landing", async (_req, res, next) => {
+  const filePath = path.join(PDF_LANDING_DIR, "index.html");
+
+  try {
+    await require("fs/promises").access(filePath);
+    return res.sendFile(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return res.status(404).send("PDF landing index not generated yet.");
+    }
+
+    return next(error);
+  }
+});
+
+app.get("/pdf-landing/:slug", async (req, res, next) => {
+  const filePath = path.join(PDF_LANDING_DIR, `${req.params.slug}.html`);
+
+  try {
+    await require("fs/promises").access(filePath);
+    return res.sendFile(filePath);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      return res.status(404).send("PDF landing page not found.");
+    }
+
+    return next(error);
+  }
+});
+
 app.use(express.static(PUBLIC_DIR));
 
 app.post("/api/auth/login", (req, res) => {
@@ -497,6 +528,8 @@ app.use((req, res, next) => {
     req.path.startsWith("/api") ||
     req.path === "/dynamic-sitemap.xml" ||
     req.path === "/dynamic-sitemap-index.xml" ||
+    req.path === "/pdf-landing" ||
+    req.path.startsWith("/pdf-landing/") ||
     req.path === "/submit" ||
     req.path === "/history" ||
     req.path === "/analytics"
