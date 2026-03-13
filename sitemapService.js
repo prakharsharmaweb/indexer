@@ -9,6 +9,7 @@ const ACTIVE_SITEMAP_FILE = "dynamic-sitemap.xml";
 const SITEMAP_INDEX_FILE = "dynamic-sitemap-index.xml";
 
 const MAX_URLS_PER_SITEMAP = 50000;
+const GENERATED_HTML_DIRS = ["discovery", "backlinks", "linkgraph"];
 
 function escapeXml(value) {
   return String(value)
@@ -95,6 +96,42 @@ async function readUrlEntries(filePath) {
     }
 
     match = urlRegex.exec(xml);
+  }
+
+  return entries;
+}
+
+async function collectGeneratedPageEntries() {
+  const baseUrl = getBaseUrl();
+  const entries = [];
+
+  for (const dirName of GENERATED_HTML_DIRS) {
+    const dirPath = path.join(PUBLIC_DIR, dirName);
+    let files = [];
+
+    try {
+      files = await fs.readdir(dirPath);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        continue;
+      }
+
+      throw error;
+    }
+
+    for (const fileName of files) {
+      if (!fileName.endsWith(".html")) {
+        continue;
+      }
+
+      const filePath = path.join(dirPath, fileName);
+      const stats = await fs.stat(filePath);
+
+      entries.push({
+        loc: `${baseUrl}/${dirName}/${fileName}`,
+        lastmod: stats.mtime.toISOString(),
+      });
+    }
   }
 
   return entries;
@@ -231,6 +268,7 @@ async function sitemapService(url) {
   const activePath = getActiveSitemapPath();
 
   let entries = await readUrlEntries(activePath);
+  const generatedEntries = await collectGeneratedPageEntries();
 
   /*
   Remove duplicates
@@ -241,6 +279,7 @@ async function sitemapService(url) {
     loc: normalizedUrl,
     lastmod: new Date().toISOString(),
   });
+  entries.push(...generatedEntries);
 
   /*
   Limit sitemap size
@@ -254,6 +293,10 @@ async function sitemapService(url) {
   Stable crawl order
   */
   entries = entries.sort((a, b) => a.loc.localeCompare(b.loc));
+  entries = entries.filter(
+    (entry, index, allEntries) =>
+      allEntries.findIndex((candidate) => candidate.loc === entry.loc) === index
+  );
 
   await writeActiveSitemap(entries);
   await writeSitemapIndex();

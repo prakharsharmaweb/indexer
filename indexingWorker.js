@@ -2,7 +2,6 @@
 const { Worker, QueueEvents } = require("bullmq");
 const { QUEUE_NAME, connection, addIndexingJob } = require("./queue");
 const { markSubmissionByJobId } = require("./db");
-const googleIndexingService = require("./services/googleIndexingService");
 
 /*
 Service loader
@@ -66,6 +65,7 @@ const rssService = loadService("rssService");
 const sitemapService = loadService("sitemapService");
 const backlinkService = loadService("backlinkService");
 const discoveryService = loadService("discoveryService");
+const linkGraphService = loadService("linkGraphService");
 const crawlerService = loadService("crawlerService");
 const pingService = loadService("pingService");
 
@@ -74,16 +74,15 @@ Service execution order
 */
 
 const services = [
+  { name: "discoveryService", module: discoveryService },
 
-  { name: "googleIndexingService", module: googleIndexingService },
+  { name: "linkGraphService", module: linkGraphService },
+
+  { name: "backlinkService", module: backlinkService },
 
   { name: "rssService", module: rssService },
 
   { name: "sitemapService", module: sitemapService },
-
-  { name: "backlinkService", module: backlinkService },
-
-  { name: "discoveryService", module: discoveryService },
 
   { name: "crawlerService", module: crawlerService },
 
