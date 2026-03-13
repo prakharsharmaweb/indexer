@@ -1,5 +1,4 @@
 const axios = require("axios");
-const { GoogleAuth } = require("google-auth-library");
 const { normalizeHttpUrl } = require("../urlUtils");
 
 const INDEXING_API_URL =
@@ -12,6 +11,20 @@ const REQUEST_TIMEOUT_MS = Number(
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getGoogleAuthLibrary() {
+  try {
+    return require("google-auth-library");
+  } catch (error) {
+    if (error.code === "MODULE_NOT_FOUND") {
+      throw new Error(
+        "google-auth-library is not installed. Add it to dependencies and rebuild the container."
+      );
+    }
+
+    throw error;
+  }
 }
 
 function getServiceAccountCredentials() {
@@ -29,6 +42,7 @@ function getServiceAccountCredentials() {
 }
 
 async function getAccessToken() {
+  const { GoogleAuth } = getGoogleAuthLibrary();
   const credentials = getServiceAccountCredentials();
   const auth = new GoogleAuth({
     credentials,
