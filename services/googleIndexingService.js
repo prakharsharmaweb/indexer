@@ -8,6 +8,10 @@ const MAX_ATTEMPTS = 3;
 const REQUEST_TIMEOUT_MS = Number(
   process.env.GOOGLE_INDEXING_TIMEOUT_MS || 10000
 );
+const ELIGIBLE_STRUCTURED_DATA_PATTERNS = [
+  /jobposting/i,
+  /broadcastevent/i,
+];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -60,8 +64,90 @@ async function getAccessToken() {
   return token;
 }
 
+async function inspectUrlEligibility(targetUrl) {
+  const response = await axios({
+    method: "GET",
+    url: targetUrl,
+    timeout: REQUEST_TIMEOUT_MS,
+    maxRedirects: 5,
+    validateStatus: () => true,
+    responseType: "text",
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; GoogleEligibilityChecker/1.0; +https://example.com/bot)",
+    },
+  });
+
+  const finalUrl =
+    response.request?.res?.responseUrl || response.config?.url || targetUrl;
+  const contentType = String(response.headers["content-type"] || "").toLowerCase();
+
+  if (response.status < 200 || response.status >= 400) {
+    return {
+      eligible: false,
+      reason: `URL returned HTTP ${response.status}`,
+      finalUrl,
+      contentType,
+    };
+  }
+
+  if (
+    contentType.includes("application/pdf") ||
+    finalUrl.toLowerCase().endsWith(".pdf")
+  ) {
+    return {
+      eligible: false,
+      reason: "Google Indexing API does not support PDF URLs.",
+      finalUrl,
+      contentType,
+    };
+  }
+
+  if (!contentType.includes("text/html")) {
+    return {
+      eligible: false,
+      reason: `Unsupported content type for Google Indexing API: ${contentType || "unknown"}`,
+      finalUrl,
+      contentType,
+    };
+  }
+
+  const html = typeof response.data === "string" ? response.data : "";
+  const hasEligibleMarkup = ELIGIBLE_STRUCTURED_DATA_PATTERNS.some((pattern) =>
+    pattern.test(html)
+  );
+
+  if (!hasEligibleMarkup) {
+    return {
+      eligible: false,
+      reason:
+        "Google Indexing API is only for eligible JobPosting or livestream pages.",
+      finalUrl,
+      contentType,
+    };
+  }
+
+  return {
+    eligible: true,
+    finalUrl,
+    contentType,
+  };
+}
+
 async function googleIndexingService(url) {
   const submittedUrl = normalizeHttpUrl(url);
+  const eligibility = await inspectUrlEligibility(submittedUrl);
+
+  if (!eligibility.eligible) {
+    return {
+      skipped: true,
+      eligible: false,
+      reason: eligibility.reason,
+      finalUrl: eligibility.finalUrl,
+      contentType: eligibility.contentType,
+    };
+  }
+
   let lastError;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
@@ -77,12 +163,14 @@ async function googleIndexingService(url) {
           "Content-Type": "application/json",
         },
         data: {
-          url: submittedUrl,
+          url: eligibility.finalUrl || submittedUrl,
           type: "URL_UPDATED",
         },
       });
 
       return {
+        skipped: false,
+        eligible: true,
         status: response.status,
         data: response.data,
         attempts: attempt,

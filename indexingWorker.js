@@ -65,7 +65,10 @@ const rssService = loadService("rssService");
 const sitemapService = loadService("sitemapService");
 const backlinkService = loadService("backlinkService");
 const discoveryService = loadService("discoveryService");
+const indexabilityService = loadService("indexabilityService");
+const googleIndexingService = loadService("googleIndexingService");
 const linkGraphService = loadService("linkGraphService");
+const wrapperService = loadService("wrapperService");
 const crawlerService = loadService("crawlerService");
 const pingService = loadService("pingService");
 
@@ -74,6 +77,12 @@ Service execution order
 */
 
 const services = [
+  { name: "indexabilityService", module: indexabilityService },
+
+  { name: "googleIndexingService", module: googleIndexingService },
+
+  { name: "wrapperService", module: wrapperService },
+
   { name: "discoveryService", module: discoveryService },
 
   { name: "linkGraphService", module: linkGraphService },
@@ -130,6 +139,37 @@ Delay utility
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function buildCompletionReason(result) {
+  if (!result || !Array.isArray(result.results)) {
+    return "";
+  }
+
+  const parts = [];
+  const indexabilityResult = result.results.find(
+    (entry) => entry.service === "indexabilityService" && entry.success
+  )?.result;
+  const googleResult = result.results.find(
+    (entry) => entry.service === "googleIndexingService" && entry.success
+  )?.result;
+  const failedServices = result.results
+    .filter((entry) => !entry.success)
+    .map((entry) => entry.service);
+
+  if (indexabilityResult?.summary) {
+    parts.push(indexabilityResult.summary);
+  }
+
+  if (googleResult?.skipped && googleResult?.reason) {
+    parts.push(`Google API skipped: ${googleResult.reason}`);
+  }
+
+  if (failedServices.length > 0) {
+    parts.push(`Service issues: ${failedServices.join(", ")}`);
+  }
+
+  return parts.join(" | ");
 }
 
 /*
@@ -213,7 +253,7 @@ Job completed
 */
 
 worker.on("completed", async (job, result) => {
-
+  const duration = Number(result?.duration);
   await markSubmissionByJobId(job.id, {
 
     status: "success",
@@ -222,7 +262,9 @@ worker.on("completed", async (job, result) => {
 
     httpStatus: 200,
 
-    reason: "",
+    reason: buildCompletionReason(result),
+
+    latencyMs: Number.isFinite(duration) ? duration : null,
 
     result
 

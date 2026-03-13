@@ -9,7 +9,7 @@ const ACTIVE_SITEMAP_FILE = "dynamic-sitemap.xml";
 const SITEMAP_INDEX_FILE = "dynamic-sitemap-index.xml";
 
 const MAX_URLS_PER_SITEMAP = 50000;
-const GENERATED_HTML_DIRS = ["discovery", "backlinks", "linkgraph"];
+const GENERATED_HTML_DIRS = ["discovery", "backlinks", "linkgraph", "wrappers"];
 
 function escapeXml(value) {
   return String(value)
