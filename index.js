@@ -255,6 +255,50 @@ async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+
+
+app.get("/dynamic-sitemap.xml", async (req, res) => {
+
+  const filePath = path.join(__dirname, "public", "dynamic-sitemap.xml");
+
+  try {
+
+    await require("fs/promises").access(filePath);
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+
+    return res.sendFile(filePath);
+
+  } catch {
+
+    return res.status(404).send(`<?xml version="1.0" encoding="UTF-8"?>
+<error>Sitemap not generated yet</error>`);
+
+  }
+
+});
+
+app.get("/dynamic-sitemap-index.xml", async (req, res) => {
+
+  const filePath = path.join(__dirname, "public", "dynamic-sitemap-index.xml");
+
+  try {
+
+    await require("fs/promises").access(filePath);
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+
+    return res.sendFile(filePath);
+
+  } catch {
+
+    return res.status(404).send(`<?xml version="1.0" encoding="UTF-8"?>
+<error>Sitemap index not generated yet</error>`);
+
+  }
+
+});
+
 app.post("/api/auth/login", (req, res) => {
   const { username, password } = req.body || {};
   const user = USERS.find((candidate) => candidate.username === username && candidate.password === password);
@@ -458,21 +502,6 @@ app.get("/analytics", async (_req, res, next) => {
 });
 
 
-app.get("/dynamic-sitemap.xml", (req, res) => {
-  const file = path.join(__dirname, "public", "dynamic-sitemap.xml");
-
-  res.setHeader("Content-Type", "application/xml");
-
-  res.sendFile(file);
-});
-
-app.get("/dynamic-sitemap-index.xml", (req, res) => {
-  const file = path.join(__dirname, "public", "dynamic-sitemap-index.xml");
-
-  res.setHeader("Content-Type", "application/xml");
-
-  res.sendFile(file);
-});
 
 app.use((req, res, next) => {
   if (req.method !== "GET") return next();
