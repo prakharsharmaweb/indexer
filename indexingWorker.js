@@ -2,6 +2,7 @@
 const { Worker, QueueEvents } = require("bullmq");
 const { QUEUE_NAME, connection, addIndexingJob } = require("./queue");
 const { markSubmissionByJobId } = require("./db");
+const googleIndexingService = require("./services/googleIndexingService");
 
 /*
 Service loader
@@ -73,6 +74,8 @@ Service execution order
 */
 
 const services = [
+
+  { name: "googleIndexingService", module: googleIndexingService },
 
   { name: "rssService", module: rssService },
 
