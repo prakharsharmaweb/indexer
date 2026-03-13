@@ -18,6 +18,7 @@ if (process.env.START_INDEXING_WORKER === "true") {
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const QUEUE_SUBMIT_TIMEOUT_MS = Number(process.env.QUEUE_SUBMIT_TIMEOUT_MS || 8000);
+const PUBLIC_DIR = path.join(__dirname, "public");
 
 const USERS = [
   { username: "admin", password: "Admin@12345", role: "admin" },
@@ -256,51 +257,34 @@ async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/dynamic-sitemap.xml", async (req, res) => {
-
-  const filePath = path.join(__dirname, "public", "dynamic-sitemap.xml");
+  const filePath = path.join(PUBLIC_DIR, "dynamic-sitemap.xml");
 
   try {
-
     await require("fs/promises").access(filePath);
-
-    res.setHeader("Content-Type", "application/xml; charset=utf-8");
-
+    res.setHeader("Content-Type", "application/xml");
     return res.sendFile(filePath);
-
   } catch {
-
+    res.setHeader("Content-Type", "application/xml");
     return res.status(404).send(`<?xml version="1.0" encoding="UTF-8"?>
 <error>Sitemap not generated yet</error>`);
-
   }
-
 });
 
 app.get("/dynamic-sitemap-index.xml", async (req, res) => {
-
-  const filePath = path.join(__dirname, "public", "dynamic-sitemap-index.xml");
+  const filePath = path.join(PUBLIC_DIR, "dynamic-sitemap-index.xml");
 
   try {
-
     await require("fs/promises").access(filePath);
-
-    res.setHeader("Content-Type", "application/xml; charset=utf-8");
-
+    res.setHeader("Content-Type", "application/xml");
     return res.sendFile(filePath);
-
   } catch {
-
+    res.setHeader("Content-Type", "application/xml");
     return res.status(404).send(`<?xml version="1.0" encoding="UTF-8"?>
 <error>Sitemap index not generated yet</error>`);
-
   }
-
 });
 
-app.use(express.static(path.join(__dirname, "public")));
-
-
-
+app.use(express.static(PUBLIC_DIR));
 
 app.post("/api/auth/login", (req, res) => {
   const { username, password } = req.body || {};
@@ -511,6 +495,8 @@ app.use((req, res, next) => {
 
   if (
     req.path.startsWith("/api") ||
+    req.path === "/dynamic-sitemap.xml" ||
+    req.path === "/dynamic-sitemap-index.xml" ||
     req.path === "/submit" ||
     req.path === "/history" ||
     req.path === "/analytics"
@@ -518,7 +504,7 @@ app.use((req, res, next) => {
     return next();
   }
 
-  return res.sendFile(path.join(__dirname, "public", "index.html"));
+  return res.sendFile(path.join(PUBLIC_DIR, "index.html"));
 });
 
 app.use((error, _req, res, _next) => {
