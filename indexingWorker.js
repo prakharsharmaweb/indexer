@@ -71,6 +71,7 @@ const linkGraphService = loadService("linkGraphService");
 const externalAssetHubService = loadService("externalAssetHubService");
 const pdfLandingService = loadService("pdfLandingService");
 const wrapperService = loadService("wrapperService");
+const searchConsoleInspectionService = loadService("searchConsoleInspectionService");
 const crawlerService = loadService("crawlerService");
 const pingService = loadService("pingService");
 
@@ -98,6 +99,8 @@ const services = [
   { name: "rssService", module: rssService },
 
   { name: "sitemapService", module: sitemapService },
+
+  { name: "searchConsoleInspectionService", module: searchConsoleInspectionService },
 
   { name: "crawlerService", module: crawlerService },
 
@@ -162,6 +165,9 @@ function buildCompletionReason(result) {
   const failedServices = result.results
     .filter((entry) => !entry.success)
     .map((entry) => entry.service);
+  const inspectionResult = result.results.find(
+    (entry) => entry.service === "searchConsoleInspectionService" && entry.success
+  )?.result;
 
   if (indexabilityResult?.summary) {
     parts.push(indexabilityResult.summary);
@@ -169,6 +175,14 @@ function buildCompletionReason(result) {
 
   if (googleResult?.skipped && googleResult?.reason) {
     parts.push(`Google API skipped: ${googleResult.reason}`);
+  }
+
+  if (inspectionResult?.skipped && inspectionResult?.reason) {
+    parts.push(`Search Console inspection skipped: ${inspectionResult.reason}`);
+  } else if (inspectionResult?.verdict) {
+    parts.push(
+      `Search Console verdict: ${inspectionResult.verdict} (${inspectionResult.coverageState || "Unknown"})`
+    );
   }
 
   if (failedServices.length > 0) {

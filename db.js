@@ -3,7 +3,7 @@ const path = require("path");
 
 const DATA_DIR = path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "submissions.json");
-const EMPTY_DB = { submissions: [] };
+const EMPTY_DB = { submissions: [], managedSites: [] };
 
 let writeChain = Promise.resolve();
 
@@ -28,11 +28,10 @@ async function readDb() {
   if (!raw.trim()) return { ...EMPTY_DB };
 
   const parsed = JSON.parse(raw);
-  if (!Array.isArray(parsed.submissions)) {
-    return { ...EMPTY_DB };
-  }
-
-  return parsed;
+  return {
+    submissions: Array.isArray(parsed.submissions) ? parsed.submissions : [],
+    managedSites: Array.isArray(parsed.managedSites) ? parsed.managedSites : [],
+  };
 }
 
 function updateDb(mutator) {
@@ -69,9 +68,72 @@ async function getSubmissions() {
   return db.submissions;
 }
 
+async function getManagedSites() {
+  await writeChain;
+  const db = await readDb();
+  return db.managedSites;
+}
+
+async function upsertManagedSite(site) {
+  return updateDb((db) => {
+    const index = db.managedSites.findIndex((item) => item.id === site.id);
+
+    if (index === -1) {
+      db.managedSites.push(site);
+      return site;
+    }
+
+    db.managedSites[index] = {
+      ...db.managedSites[index],
+      ...site,
+    };
+
+    return db.managedSites[index];
+  });
+}
+
+async function upsertManagedSites(sites) {
+  return updateDb((db) => {
+    const results = [];
+
+    for (const site of sites) {
+      const index = db.managedSites.findIndex((item) => item.id === site.id);
+
+      if (index === -1) {
+        db.managedSites.push(site);
+        results.push(site);
+        continue;
+      }
+
+      db.managedSites[index] = {
+        ...db.managedSites[index],
+        ...site,
+      };
+
+      results.push(db.managedSites[index]);
+    }
+
+    return results;
+  });
+}
+
+async function updateManagedSiteById(siteId, patch) {
+  return updateDb((db) => {
+    const site = db.managedSites.find((item) => item.id === siteId);
+    if (!site) return null;
+
+    Object.assign(site, patch);
+    return site;
+  });
+}
+
 module.exports = {
   DB_FILE,
   addSubmission,
   markSubmissionByJobId,
   getSubmissions,
+  getManagedSites,
+  upsertManagedSite,
+  upsertManagedSites,
+  updateManagedSiteById,
 };

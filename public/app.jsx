@@ -103,10 +103,15 @@ function KpiCard({ label, value }) {
 function Dashboard({ user, onLogout }) {
   const [stats, setStats] = useState(null);
   const [history, setHistory] = useState([]);
+  const [sites, setSites] = useState([]);
+  const [siteConnection, setSiteConnection] = useState(null);
   const [historyFilter, setHistoryFilter] = useState('all');
   const [urlInput, setUrlInput] = useState('');
   const [notice, setNotice] = useState('');
+  const [siteNotice, setSiteNotice] = useState('');
   const [submitBusy, setSubmitBusy] = useState(false);
+  const [siteBusy, setSiteBusy] = useState(false);
+  const [siteForm, setSiteForm] = useState({ siteUrl: '', sitemapUrl: '' });
 
   async function loadAll(filterOverride = historyFilter) {
     const [analytics, list] = await Promise.all([
@@ -116,6 +121,8 @@ function Dashboard({ user, onLogout }) {
 
     setStats(analytics);
     setHistory(list.items || []);
+    setSites(analytics.managedSites || []);
+    setSiteConnection(analytics.searchConsoleConnection || null);
   }
 
   useEffect(() => {
@@ -154,7 +161,12 @@ function Dashboard({ user, onLogout }) {
         method: 'POST',
         body: JSON.stringify({ url: urlInput.trim() })
       });
-      setNotice(`${res.message}. Job ID: ${res.submission.id}`);
+      const firstSubmission = res.submissions?.[0];
+      setNotice(
+        `${res.message}${firstSubmission ? `. Job ID: ${firstSubmission.id}` : ''}${
+          res.skipped?.length ? ` Skipped: ${res.skipped.length}` : ''
+        }`
+      );
       setUrlInput('');
       await loadAll();
     } catch (err) {
@@ -179,6 +191,107 @@ function Dashboard({ user, onLogout }) {
       await loadAll(value);
     } catch {
       // no-op
+    }
+  }
+
+  async function importSites() {
+    setSiteBusy(true);
+    setSiteNotice('');
+    try {
+      const res = await api('/api/urls/submit', {
+        method: 'POST',
+        body: JSON.stringify({ command: 'importSearchConsole' })
+      });
+      setSiteNotice(`${res.message}. Imported: ${res.count}`);
+      await loadAll();
+    } catch (err) {
+      setSiteNotice(err.message);
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function syncEnabledSites() {
+    setSiteBusy(true);
+    setSiteNotice('');
+    try {
+      const res = await api('/api/urls/submit', {
+        method: 'POST',
+        body: JSON.stringify({ command: 'syncEnabledManagedSites' })
+      });
+      setSiteNotice(`${res.message}. Sites processed: ${res.count}`);
+      await loadAll();
+    } catch (err) {
+      setSiteNotice(err.message);
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function syncSite(siteId) {
+    setSiteBusy(true);
+    setSiteNotice('');
+    try {
+      const res = await api('/api/urls/submit', {
+        method: 'POST',
+        body: JSON.stringify({ command: 'syncManagedSite', siteId })
+      });
+      setSiteNotice(`${res.message}. Queued: ${res.queuedCount}, skipped: ${res.skippedCount}`);
+      await loadAll();
+    } catch (err) {
+      setSiteNotice(err.message);
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function updateSite(siteId, patch) {
+    setSiteBusy(true);
+    setSiteNotice('');
+    try {
+      await api('/api/urls/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          command: 'updateManagedSite',
+          siteId,
+          ...patch
+        })
+      });
+      await loadAll();
+    } catch (err) {
+      setSiteNotice(err.message);
+    } finally {
+      setSiteBusy(false);
+    }
+  }
+
+  async function saveManagedSite(e) {
+    e.preventDefault();
+    setSiteBusy(true);
+    setSiteNotice('');
+    try {
+      const sitemapUrls = siteForm.sitemapUrl
+        ? siteForm.sitemapUrl
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : [];
+
+      const res = await api('/api/urls/submit', {
+        method: 'POST',
+        body: JSON.stringify({
+          command: 'saveManagedSite',
+          siteUrl: siteForm.siteUrl.trim(),
+          sitemapUrls
+        })
+      });
+      setSiteNotice(`${res.message}: ${res.site.siteUrl}`);
+      setSiteForm({ siteUrl: '', sitemapUrl: '' });
+      await loadAll();
+    } catch (err) {
+      setSiteNotice(err.message);
+    } finally {
+      setSiteBusy(false);
     }
   }
 
@@ -305,6 +418,110 @@ function Dashboard({ user, onLogout }) {
 
       <section className="panel table-panel">
         <div className="table-head">
+          <div>
+            <h3 style={{ margin: 0 }}>Managed Sites</h3>
+            <div className="helper-row" style={{ marginTop: '0.3rem' }}>
+              Search Console: {siteConnection?.configured ? `connected as ${siteConnection.serviceAccountEmail}` : 'not configured'}
+            </div>
+          </div>
+          <div className="table-actions">
+            <button className="btn-ghost" disabled={siteBusy} onClick={importSites}>Import Search Console</button>
+            <button className="btn-ghost" disabled={siteBusy} onClick={syncEnabledSites}>Sync Enabled Sites</button>
+          </div>
+        </div>
+
+        <div className="site-form-wrap">
+          <form className="site-form" onSubmit={saveManagedSite}>
+            <input
+              placeholder="https://www.example.com/ or sc-domain:example.com"
+              value={siteForm.siteUrl}
+              onChange={(e) => setSiteForm((current) => ({ ...current, siteUrl: e.target.value }))}
+              required
+            />
+            <input
+              placeholder="Optional sitemap URLs, comma-separated"
+              value={siteForm.sitemapUrl}
+              onChange={(e) => setSiteForm((current) => ({ ...current, sitemapUrl: e.target.value }))}
+            />
+            <button className="btn-primary" disabled={siteBusy} type="submit">
+              {siteBusy ? 'Saving...' : 'Add Managed Site'}
+            </button>
+          </form>
+          <div className="notice">{siteNotice}</div>
+        </div>
+
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Property</th>
+                <th>Permission</th>
+                <th>Sitemaps</th>
+                <th>Last Sync</th>
+                <th>Queued</th>
+                <th>Skipped</th>
+                <th>Enabled</th>
+                <th>Auto Sync</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sites.length === 0 ? (
+                <tr>
+                  <td colSpan="9">No managed sites configured yet.</td>
+                </tr>
+              ) : (
+                sites.map((site) => (
+                  <tr key={site.id}>
+                    <td>
+                      <div>{site.label || site.siteUrl}</div>
+                      <div className="table-subtle">{site.siteUrl}</div>
+                    </td>
+                    <td>{site.permissionLevel || '-'}</td>
+                    <td>{site.sitemapUrls?.length || 0}</td>
+                    <td>
+                      <div>{formatDate(site.lastSyncAt)}</div>
+                      <div className="table-subtle">{site.lastSyncStatus || 'never'}</div>
+                    </td>
+                    <td>{site.lastSyncQueuedCount || 0}</td>
+                    <td>{site.lastSyncSkippedCount || 0}</td>
+                    <td>{site.enabled === false ? 'No' : 'Yes'}</td>
+                    <td>{site.autoSyncEnabled === false ? 'No' : 'Yes'}</td>
+                    <td>
+                      <div className="action-stack">
+                        <button
+                          className="btn-ghost"
+                          disabled={siteBusy}
+                          onClick={() => updateSite(site.id, { enabled: site.enabled === false })}
+                        >
+                          {site.enabled === false ? 'Enable' : 'Disable'}
+                        </button>
+                        <button
+                          className="btn-ghost"
+                          disabled={siteBusy}
+                          onClick={() =>
+                            updateSite(site.id, {
+                              autoSyncEnabled: site.autoSyncEnabled === false
+                            })
+                          }
+                        >
+                          {site.autoSyncEnabled === false ? 'Auto Sync On' : 'Auto Sync Off'}
+                        </button>
+                        <button className="btn-ghost" disabled={siteBusy} onClick={() => syncSite(site.id)}>
+                          Sync Now
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel table-panel">
+        <div className="table-head">
           <h3 style={{ margin: 0 }}>URL Submission History</h3>
           <div className="table-actions">
             <select value={historyFilter} onChange={(e) => updateFilter(e.target.value)}>
@@ -325,6 +542,8 @@ function Dashboard({ user, onLogout }) {
                 <th>Submitted</th>
                 <th>Processed</th>
                 <th>Status</th>
+                <th>Search Console</th>
+                <th>Helpers</th>
                 <th>HTTP</th>
                 <th>Latency</th>
                 <th>Reason</th>
@@ -334,7 +553,7 @@ function Dashboard({ user, onLogout }) {
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan="8">No records yet.</td>
+                  <td colSpan="10">No records yet.</td>
                 </tr>
               ) : (
                 history.map((item) => (
@@ -343,6 +562,22 @@ function Dashboard({ user, onLogout }) {
                     <td>{formatDate(item.submittedAt)}</td>
                     <td>{formatDate(item.processedAt)}</td>
                     <td><StatusTag status={item.status} /></td>
+                    <td>
+                      {item.searchConsoleInspection?.verdict
+                        ? `${item.searchConsoleInspection.verdict} / ${item.searchConsoleInspection.coverageState || '-'}`
+                        : item.searchConsoleInspection?.reason || '-'}
+                    </td>
+                    <td>
+                      {item.helperUrls?.length ? (
+                        <div className="helper-links">
+                          {item.helperUrls.map((link) => (
+                            <a key={link.label + link.href} href={link.href} rel="noreferrer" target="_blank">
+                              {link.label}
+                            </a>
+                          ))}
+                        </div>
+                      ) : '-'}
+                    </td>
                     <td>{item.httpStatus || '-'}</td>
                     <td>{item.latencyMs ? `${(item.latencyMs / 1000).toFixed(2)}s` : '-'}</td>
                     <td>{item.reason || '-'}</td>

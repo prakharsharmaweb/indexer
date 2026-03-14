@@ -2,14 +2,21 @@
 const express = require("express");
 const path = require("path");
 const { randomUUID } = require("crypto");
-const { addIndexingJob } = require("./queue");
-const { normalizeHttpUrl } = require("./urlUtils");
 const {
-  addSubmission,
-  markSubmissionByJobId,
   getSubmissions,
   DB_FILE,
 } = require("./db");
+const { submitUrl, submitUrls } = require("./submissionService");
+const {
+  listManagedSites,
+  saveManagedSite,
+  patchManagedSite,
+  importManagedSitesFromSearchConsole,
+} = require("./siteManager");
+const {
+  getConfiguredServiceAccountEmail,
+} = require("./services/searchConsoleService");
+const { syncManagedSite, syncEnabledManagedSites } = require("./siteSyncService");
 
 if (process.env.START_INDEXING_WORKER === "true") {
   require("./indexingWorker");
@@ -17,9 +24,11 @@ if (process.env.START_INDEXING_WORKER === "true") {
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
-const QUEUE_SUBMIT_TIMEOUT_MS = Number(process.env.QUEUE_SUBMIT_TIMEOUT_MS || 8000);
 const PUBLIC_DIR = path.join(__dirname, "public");
 const PDF_LANDING_DIR = path.join(PUBLIC_DIR, "pdf-landing");
+const AUTO_SITE_SYNC_INTERVAL_MS = Number(
+  process.env.AUTO_SITE_SYNC_INTERVAL_MINUTES || 1440
+) * 60 * 1000;
 
 const USERS = [
   { username: "admin", password: "Admin@12345", role: "admin" },
@@ -90,17 +99,69 @@ function toHistoryItem(item) {
     requestedBy: item.requestedBy || "-",
     httpStatus: item.httpStatus || null,
     latencyMs: item.latencyMs || null,
+    helperUrls: extractHelperUrls(item.result),
+    searchConsoleInspection: extractSearchConsoleInspection(item.result),
   };
 }
 
-function withTimeout(promise, ms, timeoutMessage) {
-  let timer;
+function normalizePathLink(value) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return value.startsWith("/") ? value : `/${value}`;
+}
 
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
-  });
+function extractServiceResult(result, serviceName) {
+  return Array.isArray(result?.results)
+    ? result.results.find((entry) => entry.service === serviceName && entry.success)?.result
+    : null;
+}
 
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+function extractHelperUrls(result) {
+  const sitemap = extractServiceResult(result, "sitemapService");
+  const pdfLanding = extractServiceResult(result, "pdfLandingService");
+  const wrapper = extractServiceResult(result, "wrapperService");
+  const externalAssetHub = extractServiceResult(result, "externalAssetHubService");
+  const discovery = extractServiceResult(result, "discoveryService");
+  const linkGraph = extractServiceResult(result, "linkGraphService");
+  const backlinks = extractServiceResult(result, "backlinkService");
+
+  return [
+    sitemap?.sitemapUrl
+      ? { label: "Sitemap", href: normalizePathLink(sitemap.sitemapUrl) }
+      : null,
+    pdfLanding?.latestLandingPage
+      ? { label: "PDF Landing", href: normalizePathLink(pdfLanding.latestLandingPage) }
+      : null,
+    wrapper?.latestWrapper
+      ? { label: "Wrapper", href: normalizePathLink(wrapper.latestWrapper) }
+      : null,
+    externalAssetHub?.latestPage
+      ? { label: "External Hub", href: normalizePathLink(externalAssetHub.latestPage) }
+      : null,
+    discovery?.latestPage
+      ? { label: "Discovery", href: normalizePathLink(discovery.latestPage) }
+      : null,
+    linkGraph?.latestPage
+      ? { label: "Link Graph", href: normalizePathLink(linkGraph.latestPage) }
+      : null,
+    backlinks?.latestPageUrl
+      ? { label: "Backlinks", href: normalizePathLink(backlinks.latestPageUrl) }
+      : null,
+  ].filter(Boolean);
+}
+
+function extractSearchConsoleInspection(result) {
+  return extractServiceResult(result, "searchConsoleInspectionService");
+}
+
+function buildSearchConsoleConnectionStatus() {
+  const serviceAccountEmail = getConfiguredServiceAccountEmail();
+
+  return {
+    configured: Boolean(serviceAccountEmail),
+    serviceAccountEmail,
+    propertyHint: process.env.GOOGLE_SEARCH_CONSOLE_SITE_URL || "",
+  };
 }
 
 function toIsoDate(dateValue) {
@@ -202,59 +263,6 @@ function buildOverview(submissions) {
   };
 }
 
-async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 0 }) {
-  if (typeof url !== "string" || !url.trim()) {
-    throw new Error("Field 'url' is required.");
-  }
-
-  const normalizedUrl = normalizeHttpUrl(url);
-
-  const parsedPriority = Number(priority);
-  if (!Number.isFinite(parsedPriority)) {
-    throw new Error("Field 'priority' must be a valid number.");
-  }
-
-  const submissionId = randomUUID();
-  const submittedAt = new Date().toISOString();
-  const submission = {
-    id: submissionId,
-    jobId: submissionId,
-    url: normalizedUrl,
-    priority: parsedPriority,
-    requestedBy,
-    status: "processing",
-    submittedAt,
-    processedAt: null,
-    reason: "",
-    httpStatus: null,
-    latencyMs: null,
-  };
-
-  await addSubmission(submission);
-
-  const startedAt = Date.now();
-  try {
-    await withTimeout(
-      addIndexingJob(normalizedUrl, parsedPriority, submissionId, delayMs),
-      QUEUE_SUBMIT_TIMEOUT_MS,
-      "Queue submit timeout"
-    );
-  } catch (error) {
-    const finishedAt = Date.now();
-    await markSubmissionByJobId(submissionId, {
-      status: "rejected",
-      processedAt: new Date().toISOString(),
-      reason: `Queue submit failed: ${error.message}`,
-      httpStatus: 503,
-      latencyMs: finishedAt - startedAt,
-      error: error.message,
-    });
-    throw new Error("Could not queue submission.");
-  }
-
-  return submission;
-}
-
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/dynamic-sitemap.xml", async (req, res) => {
@@ -315,7 +323,7 @@ app.get("/pdf-landing/:slug", async (req, res, next) => {
   }
 });
 
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, { fallthrough: true }));
 
 app.post("/api/auth/login", (req, res) => {
   const { username, password } = req.body || {};
@@ -354,6 +362,75 @@ app.post("/api/auth/logout", (req, res) => {
 
 app.post("/api/urls/submit", requireAuth, async (req, res, next) => {
   try {
+    const command = String(req.body?.command || "");
+
+    if (command === "saveManagedSite") {
+      const site = await saveManagedSite({
+        siteUrl: req.body?.siteUrl,
+        label: req.body?.label,
+        sitemapUrls: req.body?.sitemapUrls,
+        enabled: req.body?.enabled,
+        autoSyncEnabled: req.body?.autoSyncEnabled,
+        source: "manual",
+      });
+
+      return res.status(201).json({
+        message: "Managed site saved",
+        site,
+      });
+    }
+
+    if (command === "importSearchConsole") {
+      const imported = await importManagedSitesFromSearchConsole();
+      return res.json({
+        message: "Search Console properties imported",
+        count: imported.length,
+        items: imported,
+      });
+    }
+
+    if (command === "syncEnabledManagedSites") {
+      const results = await syncEnabledManagedSites({
+        requestedBy: `site-auto-sync:${req.user.username}`,
+        priority: req.body?.priority,
+      });
+
+      return res.json({
+        message: "Enabled managed sites synced",
+        count: results.length,
+        results,
+      });
+    }
+
+    if (command === "syncManagedSite") {
+      const result = await syncManagedSite(req.body?.siteId, {
+        requestedBy: `site-sync:${req.user.username}`,
+        priority: req.body?.priority,
+      });
+
+      return res.json({
+        message: "Managed site synced",
+        ...result,
+      });
+    }
+
+    if (command === "updateManagedSite") {
+      const site = await patchManagedSite(req.body?.siteId, {
+        label: req.body?.label,
+        enabled: req.body?.enabled,
+        autoSyncEnabled: req.body?.autoSyncEnabled,
+        sitemapUrls: req.body?.sitemapUrls,
+      });
+
+      if (!site) {
+        return res.status(404).json({ error: "Managed site not found." });
+      }
+
+      return res.json({
+        message: "Managed site updated",
+        site,
+      });
+    }
 
     const urls = Array.isArray(req.body?.urls)
       ? req.body.urls
@@ -364,25 +441,21 @@ app.post("/api/urls/submit", requireAuth, async (req, res, next) => {
     }
 
     const delayMinutes = Number(req.body?.delay_minutes || 0);
-
-    const submissions = [];
-
-    for (const url of urls) {
-
-      const submission = await submitUrl({
-        url,
-        priority: req.body?.priority,
-        requestedBy: req.user.username,
-      });
-
-      submissions.push(submission);
-
-    }
+    const delayMs = Number.isFinite(delayMinutes)
+      ? Math.max(0, delayMinutes) * 60 * 1000
+      : 0;
+    const { queued, skipped } = await submitUrls({
+      urls,
+      priority: req.body?.priority,
+      requestedBy: req.user.username,
+      delayMs,
+    });
 
     return res.status(202).json({
       message: "URLs queued for indexing",
-      count: submissions.length,
-      submissions,
+      count: queued.length,
+      submissions: queued,
+      skipped,
       delayMinutes,
     });
 
@@ -390,13 +463,19 @@ app.post("/api/urls/submit", requireAuth, async (req, res, next) => {
 
     if (
       String(error.message).startsWith("Field") ||
-      String(error.message).startsWith("Invalid URL")
+      String(error.message).startsWith("Invalid URL") ||
+      String(error.message).includes("Managed site must be") ||
+      String(error.message).includes("GOOGLE_SERVICE_ACCOUNT_JSON")
     ) {
       return res.status(400).json({ error: error.message });
     }
 
     if (error.message === "Could not queue submission.") {
       return res.status(503).json({ error: error.message });
+    }
+
+    if (error.message === "Managed site not found.") {
+      return res.status(404).json({ error: error.message });
     }
 
     return next(error);
@@ -436,7 +515,128 @@ app.get("/api/urls/history", requireAuth, async (req, res, next) => {
 app.get("/api/analytics/overview", requireAuth, async (req, res, next) => {
   try {
     const submissions = await getSubmissions();
-    return res.json(buildOverview(submissions));
+    const sites = await listManagedSites();
+    return res.json({
+      ...buildOverview(submissions),
+      managedSites: sites,
+      searchConsoleConnection: buildSearchConsoleConnectionStatus(),
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get("/api/urls/properties", requireAuth, async (_req, res, next) => {
+  try {
+    const sites = await listManagedSites();
+    return res.json({
+      connection: buildSearchConsoleConnectionStatus(),
+      items: sites,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post("/api/urls/properties", requireAuth, async (req, res, next) => {
+  try {
+    const site = await saveManagedSite({
+      siteUrl: req.body?.siteUrl,
+      label: req.body?.label,
+      sitemapUrls: req.body?.sitemapUrls,
+      enabled: req.body?.enabled,
+      autoSyncEnabled: req.body?.autoSyncEnabled,
+      source: "manual",
+    });
+
+    return res.status(201).json({
+      message: "Managed site saved",
+      site,
+    });
+  } catch (error) {
+    if (
+      String(error.message).includes("siteUrl") ||
+      String(error.message).includes("Managed site must be") ||
+      String(error.message).includes("Invalid URL")
+    ) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return next(error);
+  }
+});
+
+app.post("/api/urls/properties/import-search-console", requireAuth, async (_req, res, next) => {
+  try {
+    const imported = await importManagedSitesFromSearchConsole();
+    return res.json({
+      message: "Search Console properties imported",
+      count: imported.length,
+      items: imported,
+    });
+  } catch (error) {
+    if (String(error.message).includes("GOOGLE_SERVICE_ACCOUNT_JSON")) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return next(error);
+  }
+});
+
+app.post("/api/urls/properties/sync-enabled", requireAuth, async (req, res, next) => {
+  try {
+    const results = await syncEnabledManagedSites({
+      requestedBy: `site-auto-sync:${req.user.username}`,
+      priority: req.body?.priority,
+    });
+
+    return res.json({
+      message: "Enabled managed sites synced",
+      count: results.length,
+      results,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post("/api/urls/properties/:siteId/sync", requireAuth, async (req, res, next) => {
+  try {
+    const result = await syncManagedSite(req.params.siteId, {
+      requestedBy: `site-sync:${req.user.username}`,
+      priority: req.body?.priority,
+    });
+
+    return res.json({
+      message: "Managed site synced",
+      ...result,
+    });
+  } catch (error) {
+    if (error.message === "Managed site not found.") {
+      return res.status(404).json({ error: error.message });
+    }
+
+    return next(error);
+  }
+});
+
+app.post("/api/urls/properties/:siteId/update", requireAuth, async (req, res, next) => {
+  try {
+    const site = await patchManagedSite(req.params.siteId, {
+      label: req.body?.label,
+      enabled: req.body?.enabled,
+      autoSyncEnabled: req.body?.autoSyncEnabled,
+      sitemapUrls: req.body?.sitemapUrls,
+    });
+
+    if (!site) {
+      return res.status(404).json({ error: "Managed site not found." });
+    }
+
+    return res.json({
+      message: "Managed site updated",
+      site,
+    });
   } catch (error) {
     return next(error);
   }
@@ -445,7 +645,6 @@ app.get("/api/analytics/overview", requireAuth, async (req, res, next) => {
 
 app.post("/submit", async (req, res, next) => {
   try {
-
     const urls = Array.isArray(req.body?.urls)
       ? req.body.urls
       : [req.body?.url];
@@ -453,25 +652,17 @@ app.post("/submit", async (req, res, next) => {
     if (!urls || urls.length === 0) {
       return res.status(400).json({ error: "At least one URL required." });
     }
-
-    const submissions = [];
-
-    for (const url of urls) {
-
-      const submission = await submitUrl({
-        url,
-        priority: req.body?.priority,
-        requestedBy: "public-api",
-      });
-
-      submissions.push(submission);
-
-    }
+    const { queued, skipped } = await submitUrls({
+      urls,
+      priority: req.body?.priority,
+      requestedBy: "public-api",
+    });
 
     return res.status(202).json({
       message: "URLs queued for indexing",
-      count: submissions.length,
-      submissions
+      count: queued.length,
+      submissions: queued,
+      skipped,
     });
 
   } catch (error) {
@@ -544,6 +735,16 @@ app.use((error, _req, res, _next) => {
   console.error(error);
   res.status(500).json({ error: "Internal server error." });
 });
+
+if (process.env.ENABLE_AUTO_SITE_SYNC === "true") {
+  setInterval(() => {
+    syncEnabledManagedSites({
+      requestedBy: "site-auto-sync",
+    }).catch((error) => {
+      console.error("Automatic managed-site sync failed:", error.message);
+    });
+  }, AUTO_SITE_SYNC_INTERVAL_MS);
+}
 
 app.listen(PORT, () => {
   console.log(`API server listening on http://localhost:${PORT}`);
