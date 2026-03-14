@@ -17,6 +17,7 @@ const GENERATED_HTML_DIRS = [
   "linkgraph",
   "wrappers",
   "pdf-landing",
+  "external-assets",
 ];
 
 function escapeXml(value) {

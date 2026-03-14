@@ -19,6 +19,10 @@ function buildSlug(url) {
   return crypto.createHash("sha1").update(url).digest("hex").slice(0, 16);
 }
 
+function getBaseUrl() {
+  return (process.env.PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+}
+
 async function readManifest() {
   try {
     const content = await fs.readFile(MANIFEST_FILE, "utf8");
@@ -39,6 +43,7 @@ async function readManifest() {
 }
 
 function buildWrapperPage(url, allItems, fileName) {
+  const baseUrl = getBaseUrl();
   const title = `Instant Discovery Wrapper`;
   const relatedLinks = allItems
     .slice(0, 25)
@@ -71,14 +76,15 @@ function buildWrapperPage(url, allItems, fileName) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)}</title>
+  <meta name="description" content="Wrapper page for ${escapeHtml(url)}">
   <meta name="robots" content="index,follow,max-image-preview:large">
-  <link rel="canonical" href="${escapeHtml(url)}">
+  <link rel="canonical" href="${escapeHtml(`${baseUrl}/wrappers/${fileName}`)}">
 </head>
 <body>
   <header>
     <h1>${escapeHtml(title)}</h1>
     <p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
-    <p><a href="/dynamic-sitemap.xml">XML Sitemap</a> <a href="/discovery/index.html">Discovery Index</a></p>
+    <p><a href="/dynamic-sitemap.xml">XML Sitemap</a> <a href="/discovery/index.html">Discovery Index</a> <a href="/external-assets/index.html">External Asset Index</a></p>
   </header>
   <main>
     ${preview}

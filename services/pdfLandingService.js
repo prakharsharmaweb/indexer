@@ -24,6 +24,10 @@ function buildSlug(url) {
   return crypto.createHash("sha1").update(url).digest("hex").slice(0, 20);
 }
 
+function getBaseUrl() {
+  return (process.env.PUBLIC_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+}
+
 async function readManifest() {
   try {
     const content = await fs.readFile(MANIFEST_FILE, "utf8");
@@ -63,6 +67,8 @@ async function detectPdf(targetUrl) {
 }
 
 function buildLandingPage(item, items) {
+  const baseUrl = getBaseUrl();
+  const canonicalUrl = `${baseUrl}/pdf-landing/${item.slug}`;
   const relatedPages = items
     .slice(0, 20)
     .map(
@@ -79,8 +85,9 @@ function buildLandingPage(item, items) {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(item.title)}</title>
+  <meta name="description" content="Landing page for external PDF ${escapeHtml(item.url)}">
   <meta name="robots" content="index,follow,max-image-preview:large">
-  <link rel="canonical" href="${escapeHtml(item.url)}">
+  <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
 </head>
 <body>
   <header>
@@ -88,6 +95,7 @@ function buildLandingPage(item, items) {
     <p><a href="${escapeHtml(item.url)}">${escapeHtml(item.url)}</a></p>
     <nav>
       <a href="/pdf-landing">PDF Landing Index</a>
+      <a href="/external-assets/index.html">External Asset Index</a>
       <a href="/dynamic-sitemap.xml">XML Sitemap</a>
     </nav>
   </header>
@@ -95,6 +103,7 @@ function buildLandingPage(item, items) {
     <section>
       <h2>Direct PDF Link</h2>
       <p><a href="${escapeHtml(item.url)}">${escapeHtml(item.url)}</a></p>
+      <p>This HTML page is kept indexable so search engines can discover the external PDF through a normal crawl path.</p>
     </section>
     <section>
       <h2>PDF Preview</h2>
