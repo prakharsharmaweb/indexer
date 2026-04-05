@@ -2,45 +2,31 @@ const axios = require("axios");
 const { normalizeHttpUrl } = require("../urlUtils");
 
 const REQUEST_TIMEOUT_MS = Number(process.env.CRAWLER_TIMEOUT_MS || 10000);
-const REQUEST_DELAY_MS = 2000;
-const PASSES = 2;
 
-const CRAWLER_USER_AGENTS = [
+const FETCH_PROFILES = [
   {
-    bot: "Googlebot",
+    profile: "Desktop Browser",
     userAgent:
-      "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
   },
   {
-    bot: "Googlebot-Mobile",
+    profile: "Mobile Browser",
     userAgent:
-      "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-  },
-  {
-    bot: "Chrome Desktop",
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-  },
-  {
-    bot: "Chrome Mobile",
-    userAgent:
-      "Mozilla/5.0 (Linux; Android 12; Pixel 5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+      "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Mobile Safari/537.36",
   },
 ];
 
-function delay(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function fetchAsCrawler(targetUrl, crawler) {
+async function fetchProfile(targetUrl, profile) {
+  const startedAt = Date.now();
   const response = await axios({
     method: "GET",
     url: targetUrl,
     timeout: REQUEST_TIMEOUT_MS,
     maxRedirects: 5,
     validateStatus: () => true,
+    responseType: "text",
     headers: {
-      "User-Agent": crawler.userAgent,
+      "User-Agent": profile.userAgent,
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
@@ -48,49 +34,40 @@ async function fetchAsCrawler(targetUrl, crawler) {
   });
 
   return {
-    bot: crawler.bot,
-    status: response.status,
+    profile: profile.profile,
     success: response.status >= 200 && response.status < 400,
+    status: response.status,
+    latencyMs: Date.now() - startedAt,
     finalUrl:
       response.request?.res?.responseUrl || response.config?.url || targetUrl,
+    contentType: String(response.headers["content-type"] || "").toLowerCase(),
+    bytes:
+      typeof response.data === "string"
+        ? Buffer.byteLength(response.data)
+        : 0,
   };
 }
 
 async function crawlerService(url) {
   const normalizedUrl = normalizeHttpUrl(url);
-  const passes = [];
+  const fetches = [];
 
-  for (let pass = 1; pass <= PASSES; pass += 1) {
-    const passResults = [];
-
-    for (let index = 0; index < CRAWLER_USER_AGENTS.length; index += 1) {
-      const crawler = CRAWLER_USER_AGENTS[index];
-
-      try {
-        passResults.push(await fetchAsCrawler(normalizedUrl, crawler));
-      } catch (error) {
-        passResults.push({
-          bot: crawler.bot,
-          success: false,
-          error: error.message,
-        });
-      }
-
-      if (index < CRAWLER_USER_AGENTS.length - 1) {
-        await delay(REQUEST_DELAY_MS);
-      }
+  for (const profile of FETCH_PROFILES) {
+    try {
+      fetches.push(await fetchProfile(normalizedUrl, profile));
+    } catch (error) {
+      fetches.push({
+        profile: profile.profile,
+        success: false,
+        error: error.message,
+      });
     }
-
-    passes.push({
-      pass,
-      results: passResults,
-    });
   }
 
   return {
     url: normalizedUrl,
-    passes,
-    crawlersAttempted: CRAWLER_USER_AGENTS.length,
+    fetches,
+    fetchProfilesAttempted: FETCH_PROFILES.length,
   };
 }
 

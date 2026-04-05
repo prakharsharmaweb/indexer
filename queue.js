@@ -71,7 +71,7 @@ function getIndexingQueue() {
 Add single indexing job
 */
 
-async function addIndexingJob(url, priority = 5, jobId, delayMs = 0) {
+async function addIndexingJob(url, priority = 5, jobId, delayMs = 0, metadata = {}) {
 
   const normalizedUrl = normalizeHttpUrl(url);
 
@@ -102,7 +102,11 @@ async function addIndexingJob(url, priority = 5, jobId, delayMs = 0) {
 
   return getIndexingQueue().add(
     "index-url",
-    { url: normalizedUrl },
+    {
+      url: normalizedUrl,
+      priority: parsedPriority,
+      managedSiteId: metadata.managedSiteId || null,
+    },
     jobOptions
   );
 
@@ -177,4 +181,3 @@ module.exports = {
   getQueueStats,
 
 };
-

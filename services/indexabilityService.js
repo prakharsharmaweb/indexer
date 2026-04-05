@@ -12,10 +12,40 @@ function parseMetaRobots(html) {
   return match ? match[1].toLowerCase() : "";
 }
 
+function parseCanonicalUrl(html, baseUrl) {
+  const linkTags = html.match(/<link\b[^>]*>/gi) || [];
+
+  for (const tag of linkTags) {
+    const relMatch = tag.match(/\brel=["']([^"']+)["']/i);
+    if (!relMatch?.[1] || !/\bcanonical\b/i.test(relMatch[1])) {
+      continue;
+    }
+
+    const hrefMatch = tag.match(/\bhref=["']([^"']+)["']/i);
+    if (!hrefMatch?.[1]) {
+      continue;
+    }
+
+    try {
+      return new URL(hrefMatch[1].trim(), baseUrl).toString();
+    } catch {
+      return "";
+    }
+  }
+
+  return "";
+}
+
 function normalizePathname(url) {
   const parsed = new URL(url);
   const pathname = parsed.pathname || "/";
   return parsed.search ? `${pathname}${parsed.search}` : pathname;
+}
+
+function stripUrlHash(url) {
+  const parsed = new URL(url);
+  parsed.hash = "";
+  return parsed.toString();
 }
 
 function parseRobotsTxt(content) {
@@ -130,7 +160,11 @@ async function indexabilityService(url) {
   const recommendations = [];
   let response = await requestUrl(submittedUrl, "HEAD");
 
-  if (response.status === 405 || !response.headers["content-type"]) {
+  if (
+    response.status === 405 ||
+    !response.headers["content-type"] ||
+    String(response.headers["content-type"] || "").toLowerCase().includes("text/html")
+  ) {
     response = await requestUrl(submittedUrl, "GET");
   }
 
@@ -140,10 +174,16 @@ async function indexabilityService(url) {
   const contentType = String(response.headers["content-type"] || "").toLowerCase();
   const xRobotsTag = String(response.headers["x-robots-tag"] || "").toLowerCase();
   const robotsStatus = await fetchRobotsStatus(finalUrl);
+  const redirected = stripUrlHash(finalUrl) !== stripUrlHash(submittedUrl);
 
   if (status < 200 || status >= 400) {
     issues.push(`URL returned HTTP ${status}`);
     recommendations.push("Serve the URL with a stable 200 response.");
+  }
+
+  if (redirected) {
+    issues.push(`Submitted URL redirects to ${finalUrl}.`);
+    recommendations.push("Submit the final canonical URL directly and serve it with a stable 200 response.");
   }
 
   if (robotsStatus.blocked) {
@@ -157,16 +197,28 @@ async function indexabilityService(url) {
   }
 
   let metaRobots = "";
+  let canonicalUrl = "";
+  let canonicalMatchesFinal = true;
   const isHtml = contentType.includes("text/html");
   const isPdf =
     contentType.includes("application/pdf") || finalUrl.toLowerCase().endsWith(".pdf");
 
   if (isHtml && typeof response.data === "string") {
     metaRobots = parseMetaRobots(response.data);
+    canonicalUrl = parseCanonicalUrl(response.data, finalUrl);
 
     if (metaRobots.includes("noindex")) {
       issues.push("HTML meta robots contains noindex.");
       recommendations.push("Remove the meta robots noindex directive.");
+    }
+
+    if (canonicalUrl) {
+      canonicalMatchesFinal = stripUrlHash(canonicalUrl) === stripUrlHash(finalUrl);
+
+      if (!canonicalMatchesFinal) {
+        issues.push(`Canonical points to ${canonicalUrl}.`);
+        recommendations.push("Make the canonical URL match the page you want Google to index.");
+      }
     }
   }
 
@@ -176,11 +228,12 @@ async function indexabilityService(url) {
   }
 
   const crawlableByGoogle =
-    status >= 200 &&
-    status < 400 &&
+    status === 200 &&
     !robotsStatus.blocked &&
     !xRobotsTag.includes("noindex") &&
-    !metaRobots.includes("noindex");
+    !metaRobots.includes("noindex") &&
+    canonicalMatchesFinal &&
+    !redirected;
 
   const summary = crawlableByGoogle
     ? `Indexability looks good${isPdf ? " for a PDF" : ""}.`
@@ -195,6 +248,9 @@ async function indexabilityService(url) {
     isPdf,
     xRobotsTag,
     metaRobots,
+    canonicalUrl,
+    canonicalMatchesFinal,
+    redirected,
     robotsTxtChecked: robotsStatus.available,
     blockedByRobots: robotsStatus.blocked,
     crawlableByGoogle,

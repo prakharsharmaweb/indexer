@@ -3,7 +3,8 @@ const path = require("path");
 const { normalizeHttpUrl } = require("./urlUtils");
 const {
   submitSitemapToSearchConsole,
-} = require("./services/searchConsoleSitemapService");
+} = require("./services/searchConsoleService");
+const { findBestManagedSiteForUrl, getManagedSiteById } = require("./siteManager");
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 
@@ -250,7 +251,20 @@ async function writeSitemapIndex() {
   await fs.writeFile(getSitemapIndexPath(), xml, "utf8");
 }
 
-async function sitemapService(url) {
+async function resolveManagedSite(url, context = {}) {
+  if (context.managedSiteId) {
+    const site = await getManagedSiteById(context.managedSiteId);
+    if (site) {
+      return site;
+    }
+  }
+
+  return findBestManagedSiteForUrl(url, {
+    enabledOnly: true,
+  });
+}
+
+async function sitemapService(url, context = {}) {
   if (typeof url !== "string" || !url.trim()) {
     throw new Error("sitemapService requires a non-empty URL string.");
   }
@@ -302,13 +316,21 @@ async function sitemapService(url) {
   const baseUrl = getBaseUrl();
 
   const sitemapUrl = `${baseUrl}/${ACTIVE_SITEMAP_FILE}`;
-  const searchConsole = await submitSitemapToSearchConsole(sitemapUrl).catch(
-    (error) => ({
-      submitted: false,
-      skipped: false,
-      reason: error.message,
-    })
-  );
+  const managedSite = await resolveManagedSite(normalizedUrl, context);
+  const searchConsole = managedSite?.googleVerified
+    ? await submitSitemapToSearchConsole(
+        managedSite.googleVerificationProperty || managedSite.siteUrl,
+        sitemapUrl
+      ).catch((error) => ({
+        submitted: false,
+        skipped: false,
+        reason: error.message,
+      }))
+    : {
+        submitted: false,
+        skipped: true,
+        reason: "No verified managed Search Console property matched this URL.",
+      };
 
   return {
     sitemapUrl,

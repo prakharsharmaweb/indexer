@@ -465,7 +465,9 @@ app.post("/api/urls/submit", requireAuth, async (req, res, next) => {
       String(error.message).startsWith("Field") ||
       String(error.message).startsWith("Invalid URL") ||
       String(error.message).includes("Managed site must be") ||
-      String(error.message).includes("GOOGLE_SERVICE_ACCOUNT_JSON")
+      String(error.message).includes("GOOGLE_SERVICE_ACCOUNT_JSON") ||
+      String(error.message).includes("Google Search Console") ||
+      String(error.message).includes("Only URLs covered by an enabled managed")
     ) {
       return res.status(400).json({ error: error.message });
     }
@@ -669,7 +671,9 @@ app.post("/submit", async (req, res, next) => {
 
     if (
       String(error.message).startsWith("Field") ||
-      String(error.message).startsWith("Invalid URL")
+      String(error.message).startsWith("Invalid URL") ||
+      String(error.message).includes("Google Search Console") ||
+      String(error.message).includes("Only URLs covered by an enabled managed")
     ) {
       return res.status(400).json({ error: error.message });
     }

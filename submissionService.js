@@ -2,6 +2,7 @@ const { randomUUID } = require("crypto");
 const { addIndexingJob } = require("./queue");
 const { normalizeHttpUrl } = require("./urlUtils");
 const { addSubmission, markSubmissionByJobId, getSubmissions } = require("./db");
+const { findBestManagedSiteForUrl } = require("./siteManager");
 
 const QUEUE_SUBMIT_TIMEOUT_MS = Number(process.env.QUEUE_SUBMIT_TIMEOUT_MS || 8000);
 
@@ -15,6 +16,27 @@ function withTimeout(promise, ms, timeoutMessage) {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
+async function resolveOwnedManagedSiteOrThrow(url) {
+  const site = await findBestManagedSiteForUrl(url, {
+    enabledOnly: true,
+  });
+
+  if (!site) {
+    throw new Error(
+      "Only URLs covered by an enabled managed Google Search Console property can be submitted."
+    );
+  }
+
+  if (site.googleVerified !== true) {
+    throw new Error(
+      site.googleVerificationError ||
+        "The matching managed site is not verified in Google Search Console."
+    );
+  }
+
+  return site;
+}
+
 async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 0 }) {
   if (typeof url !== "string" || !url.trim()) {
     throw new Error("Field 'url' is required.");
@@ -22,6 +44,7 @@ async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 
 
   const normalizedUrl = normalizeHttpUrl(url);
   const parsedPriority = Number(priority);
+  const managedSite = await resolveOwnedManagedSiteOrThrow(normalizedUrl);
 
   if (!Number.isFinite(parsedPriority)) {
     throw new Error("Field 'priority' must be a valid number.");
@@ -35,6 +58,7 @@ async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 
     url: normalizedUrl,
     priority: parsedPriority,
     requestedBy,
+    managedSiteId: managedSite.id,
     status: "processing",
     submittedAt,
     processedAt: null,
@@ -48,7 +72,9 @@ async function submitUrl({ url, priority = 5, requestedBy = "system", delayMs = 
   const startedAt = Date.now();
   try {
     await withTimeout(
-      addIndexingJob(normalizedUrl, parsedPriority, submissionId, delayMs),
+      addIndexingJob(normalizedUrl, parsedPriority, submissionId, delayMs, {
+        managedSiteId: managedSite.id,
+      }),
       QUEUE_SUBMIT_TIMEOUT_MS,
       "Queue submit timeout"
     );

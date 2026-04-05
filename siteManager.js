@@ -24,9 +24,23 @@ function sanitizeSitemapUrls(values) {
   );
 }
 
+function normalizeThreshold(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(1, Math.min(5, parsed)) : fallback;
+}
+
+function createVerificationDefaults() {
+  return {
+    googleVerified: false,
+    googleVerificationProperty: "",
+    googleVerificationError: "",
+  };
+}
+
 function normalizeManagedSiteInput(input = {}) {
   const siteUrl = normalizeSiteUrl(input.siteUrl);
   const now = new Date().toISOString();
+  const verificationDefaults = createVerificationDefaults();
 
   return {
     id: input.id || createSiteId(siteUrl),
@@ -36,7 +50,19 @@ function normalizeManagedSiteInput(input = {}) {
     enabled: input.enabled !== false,
     autoSyncEnabled: input.autoSyncEnabled !== false,
     sitemapUrls: sanitizeSitemapUrls(input.sitemapUrls),
+    priorityInspectionThreshold: normalizeThreshold(
+      input.priorityInspectionThreshold,
+      2
+    ),
     source: input.source || "manual",
+    googleVerified:
+      input.googleVerified !== undefined
+        ? Boolean(input.googleVerified)
+        : verificationDefaults.googleVerified,
+    googleVerificationProperty:
+      input.googleVerificationProperty || verificationDefaults.googleVerificationProperty,
+    googleVerificationError:
+      input.googleVerificationError || verificationDefaults.googleVerificationError,
     importedAt: input.importedAt || now,
     lastImportedAt: input.lastImportedAt || now,
     lastSyncAt: input.lastSyncAt || null,
@@ -86,8 +112,78 @@ async function listManagedSites() {
     .sort((left, right) => String(left.label || left.siteUrl).localeCompare(String(right.label || right.siteUrl)));
 }
 
+async function getManagedSiteById(siteId) {
+  if (!siteId) return null;
+
+  const sites = await listManagedSites();
+  return sites.find((site) => site.id === siteId) || null;
+}
+
+function findBestSearchConsolePropertyForSite(siteUrl, entries = []) {
+  if (!siteUrl) return null;
+
+  if (siteUrl.startsWith("sc-domain:")) {
+    return entries.find((entry) => entry.siteUrl === siteUrl) || null;
+  }
+
+  const candidates = entries.filter((entry) => matchesUrlToSite(siteUrl, entry.siteUrl));
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((left, right) => String(right.siteUrl).length - String(left.siteUrl).length);
+  return candidates[0];
+}
+
+async function enrichManagedSiteWithGoogleVerification(site) {
+  const normalizedSite = normalizeManagedSiteInput(site);
+
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+    return {
+      ...normalizedSite,
+      googleVerified: false,
+      googleVerificationProperty: "",
+      googleVerificationError: "GOOGLE_SERVICE_ACCOUNT_JSON is not set.",
+    };
+  }
+
+  try {
+    const entries = await listSearchConsoleSites();
+    const matchingEntry = findBestSearchConsolePropertyForSite(
+      normalizedSite.siteUrl,
+      entries
+    );
+
+    if (!matchingEntry) {
+      return {
+        ...normalizedSite,
+        googleVerified: false,
+        googleVerificationProperty: "",
+        googleVerificationError:
+          "No matching Google Search Console property was found for this site.",
+      };
+    }
+
+    return {
+      ...normalizedSite,
+      googleVerified: true,
+      googleVerificationProperty: matchingEntry.siteUrl,
+      googleVerificationError: "",
+      permissionLevel:
+        matchingEntry.permissionLevel || normalizedSite.permissionLevel || "siteOwner",
+    };
+  } catch (error) {
+    return {
+      ...normalizedSite,
+      googleVerified: false,
+      googleVerificationProperty: "",
+      googleVerificationError: error.message,
+    };
+  }
+}
+
 async function saveManagedSite(input) {
-  const site = normalizeManagedSiteInput(input);
+  const site = await enrichManagedSiteWithGoogleVerification(input);
   return upsertManagedSite(site);
 }
 
@@ -115,6 +211,22 @@ async function patchManagedSite(siteId, patch = {}) {
         ? patch.permissionLevel
         : currentSite.permissionLevel,
     source: patch.source !== undefined ? patch.source : currentSite.source,
+    priorityInspectionThreshold:
+      patch.priorityInspectionThreshold !== undefined
+        ? patch.priorityInspectionThreshold
+        : currentSite.priorityInspectionThreshold,
+    googleVerified:
+      patch.googleVerified !== undefined
+        ? patch.googleVerified
+        : currentSite.googleVerified,
+    googleVerificationProperty:
+      patch.googleVerificationProperty !== undefined
+        ? patch.googleVerificationProperty
+        : currentSite.googleVerificationProperty,
+    googleVerificationError:
+      patch.googleVerificationError !== undefined
+        ? patch.googleVerificationError
+        : currentSite.googleVerificationError,
     id: currentSite.id,
     importedAt: currentSite.importedAt,
     lastImportedAt: currentSite.lastImportedAt,
@@ -144,7 +256,11 @@ async function importManagedSitesFromSearchConsole() {
         siteUrl,
         label: existingSite?.label || entry.siteUrl,
         permissionLevel: entry.permissionLevel || existingSite?.permissionLevel || "siteOwner",
+        priorityInspectionThreshold: existingSite?.priorityInspectionThreshold || 2,
         source: "search-console",
+        googleVerified: true,
+        googleVerificationProperty: siteUrl,
+        googleVerificationError: "",
         importedAt: existingSite?.importedAt || importedAt,
         lastImportedAt: importedAt,
       };
@@ -189,9 +305,12 @@ module.exports = {
   createSiteId,
   normalizeManagedSiteInput,
   listManagedSites,
+  getManagedSiteById,
   saveManagedSite,
   patchManagedSite,
   importManagedSitesFromSearchConsole,
+  enrichManagedSiteWithGoogleVerification,
+  findBestSearchConsolePropertyForSite,
   findBestManagedSiteForUrl,
   matchesUrlToSite,
 };

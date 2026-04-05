@@ -119,6 +119,13 @@ async function syncManagedSite(siteId, options = {}) {
     throw new Error("Managed site not found.");
   }
 
+  if (site.googleVerified !== true) {
+    throw new Error(
+      site.googleVerificationError ||
+        "Managed site is not verified in Google Search Console."
+    );
+  }
+
   try {
     const sitemapUrls = await resolveSiteSitemaps(site);
     if (sitemapUrls.length === 0) {

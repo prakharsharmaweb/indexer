@@ -63,6 +63,7 @@ Load indexing services
 
 const rssService = loadService("rssService");
 const sitemapService = loadService("sitemapService");
+const ownershipService = loadService("ownershipService");
 const backlinkService = loadService("backlinkService");
 const discoveryService = loadService("discoveryService");
 const indexabilityService = loadService("indexabilityService");
@@ -73,16 +74,19 @@ const pdfLandingService = loadService("pdfLandingService");
 const wrapperService = loadService("wrapperService");
 const searchConsoleInspectionService = loadService("searchConsoleInspectionService");
 const crawlerService = loadService("crawlerService");
-const pingService = loadService("pingService");
 
 /*
 Service execution order
 */
 
 const services = [
-  { name: "indexabilityService", module: indexabilityService },
-
   { name: "googleIndexingService", module: googleIndexingService },
+
+  { name: "sitemapService", module: sitemapService },
+
+  { name: "searchConsoleInspectionService", module: searchConsoleInspectionService },
+
+  { name: "rssService", module: rssService },
 
   { name: "pdfLandingService", module: pdfLandingService },
 
@@ -96,15 +100,7 @@ const services = [
 
   { name: "backlinkService", module: backlinkService },
 
-  { name: "rssService", module: rssService },
-
-  { name: "sitemapService", module: sitemapService },
-
-  { name: "searchConsoleInspectionService", module: searchConsoleInspectionService },
-
   { name: "crawlerService", module: crawlerService },
-
-  { name: "pingService", module: pingService }
 
 ];
 
@@ -112,13 +108,13 @@ const services = [
 Execute single service
 */
 
-async function runService(service, url) {
+async function runService(service, context) {
 
   const handler = getServiceHandler(service.module, service.name);
 
   try {
 
-    const result = await handler(url);
+    const result = await handler(context.url, context);
 
     console.log(`[INDEXING] ${service.name} completed`);
 
@@ -142,6 +138,28 @@ async function runService(service, url) {
 
 }
 
+function isPreflightFailure(serviceResult) {
+  if (!serviceResult?.success) {
+    return serviceResult?.error || "Unknown preflight failure.";
+  }
+
+  if (serviceResult.service === "ownershipService") {
+    return null;
+  }
+
+  if (
+    serviceResult.service === "indexabilityService" &&
+    serviceResult.result?.crawlableByGoogle !== true
+  ) {
+    return (
+      serviceResult.result?.summary ||
+      "URL is not currently ready for Google indexing."
+    );
+  }
+
+  return null;
+}
+
 /*
 Delay utility
 */
@@ -159,8 +177,14 @@ function buildCompletionReason(result) {
   const indexabilityResult = result.results.find(
     (entry) => entry.service === "indexabilityService" && entry.success
   )?.result;
+  const ownershipResult = result.results.find(
+    (entry) => entry.service === "ownershipService" && entry.success
+  )?.result;
   const googleResult = result.results.find(
     (entry) => entry.service === "googleIndexingService" && entry.success
+  )?.result;
+  const sitemapResult = result.results.find(
+    (entry) => entry.service === "sitemapService" && entry.success
   )?.result;
   const failedServices = result.results
     .filter((entry) => !entry.success)
@@ -173,8 +197,18 @@ function buildCompletionReason(result) {
     parts.push(indexabilityResult.summary);
   }
 
+  if (ownershipResult?.googleVerificationProperty) {
+    parts.push(`Property: ${ownershipResult.googleVerificationProperty}`);
+  }
+
   if (googleResult?.skipped && googleResult?.reason) {
     parts.push(`Google API skipped: ${googleResult.reason}`);
+  }
+
+  if (sitemapResult?.searchConsole?.submitted) {
+    parts.push("Sitemap submitted to Search Console.");
+  } else if (sitemapResult?.searchConsole?.reason) {
+    parts.push(`Sitemap submission: ${sitemapResult.searchConsole.reason}`);
   }
 
   if (inspectionResult?.skipped && inspectionResult?.reason) {
@@ -202,7 +236,7 @@ const worker = new Worker(
 
   async (job) => {
 
-    const { url } = job.data || {};
+    const { url, priority, managedSiteId } = job.data || {};
 
     if (!url) {
       throw new Error("Job missing required field: url");
@@ -211,8 +245,40 @@ const worker = new Worker(
     console.log(`[${QUEUE_NAME}] Processing URL: ${url}`);
 
     const results = [];
+    const context = {
+      url,
+      priority,
+      managedSiteId,
+      jobId: job.id,
+    };
 
     const startedAt = Date.now();
+
+    /*
+    Run ownership and crawlability preflight first
+    */
+
+    for (const service of [
+      { name: "ownershipService", module: ownershipService },
+      { name: "indexabilityService", module: indexabilityService },
+    ]) {
+
+      const result = await runService(service, context);
+
+      results.push(result);
+
+      const failureReason = isPreflightFailure(result);
+      if (failureReason) {
+        throw new Error(failureReason);
+      }
+
+      if (result.service === "ownershipService" && result.success) {
+        context.priorityInspectionThreshold =
+          result.result?.priorityInspectionThreshold || 2;
+      }
+
+      await delay(250);
+    }
 
     /*
     Run indexing pipeline
@@ -220,7 +286,7 @@ const worker = new Worker(
 
     for (const service of services) {
 
-      const result = await runService(service, url);
+      const result = await runService(service, context);
 
       results.push(result);
 
@@ -228,7 +294,7 @@ const worker = new Worker(
       Delay improves crawl signal spacing
       */
 
-      await delay(500);
+      await delay(350);
 
     }
 
